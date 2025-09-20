@@ -13,8 +13,11 @@ import clsx from 'clsx';
 import CustomCard from '@/components/landing-page/customcard'; 
 import { Avatar,AvatarFallback,AvatarImage } from "@/components/ui/avatar"; 
 import { CardContent, CardDescription, CardTitle } from '@/components/ui/card';
+import { auth } from "@/auth";
 
-const Homepage = () => {
+const Homepage = async() => {  
+  const session =await auth(); 
+  console.log("session",session);
   return (
     <>
       <section

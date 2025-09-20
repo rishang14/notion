@@ -6,7 +6,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../lib/generated/prisma"
 }
 
 datasource db {
@@ -73,13 +72,15 @@ model File {
 }
 
 model User {
-  id             String   @id
-  fullName       String?
+  id            String     @id @default(cuid())
+  name          String?
+  email         String     @unique
+  emailVerified DateTime?
+  image         String?
   avatarUrl      String?
-  billingAddress Json?
+  billingAddress Json? 
   updatedAt      DateTime?
   paymentMethod  Json?
-  email          String?
   accounts      Account[]
   sessions      Session[]
   collaborators Collaborator[]

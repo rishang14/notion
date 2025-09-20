@@ -227,18 +227,10 @@ const Header = () => {
       >
         <Link href={'/login'}>
           <Button  
-           variant={"ghost"}
-            className=" p-1 hidden sm:block"
-          >
-            Login
-          </Button>
-        </Link>
-        <Link href="/signup">
-          <Button 
             variant="default"
             className="whitespace-nowrap"
           >
-            Sign Up
+            Login
           </Button>
         </Link>
       </aside>
