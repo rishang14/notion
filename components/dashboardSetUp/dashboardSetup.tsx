@@ -1,7 +1,7 @@
 "use client";
-import React, { useState }  from "react";
-import { useForm } from 'react-hook-form';
-import { Session } from "next-auth"; 
+import React, { useState } from "react";
+import { SubmitHandler, useForm } from "react-hook-form";
+import { Session } from "next-auth";
 import {
   Card,
   CardContent,
@@ -12,23 +12,81 @@ import {
 import { Button } from "../ui/button";
 import { Label } from "@radix-ui/react-label";
 import { Input } from "../ui/input";
-import Loader from "../global/Loader"; 
+import Loader from "../global/Loader";
 import EmojiPicker from "../global/emojiPicker";
 import { Subscription } from "@prisma/client";
-
+import { CreateWorkspaceFormSchema } from "@/lib/types";
+import { ImgFormats } from "@/lib/constants";
+import z, { any, unknown } from "zod";
+import { HandleUploadImg } from "@/lib/uploadImg";
+import { toast } from "sonner";
 interface prop {
   user: Session;
   subscription: Subscription | null;
 }
 
 const DashboardSetup = ({ user, subscription }: prop) => {
-  const {register,handleSubmit,formState:{isLoading,errors,isSubmitting}} =useForm(); 
-  const [selectedEmoji,setSelectedEmoji]=useState('💼'); 
+  const [selectedEmoji, setSelectedEmoji] = useState("💼");
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { isLoading, errors, isSubmitting },
+    setError,
+  } = useForm({
+    mode: "onChange",
+    defaultValues: {
+      logo: "",
+      workspaceName: "",
+    },
+  });
 
+  console.log("errors", errors);
+  const onsubmit: SubmitHandler<
+    z.infer<typeof CreateWorkspaceFormSchema>
+  > = async (values) => {
+    try {
+      const workspaceName = values.workspaceName;
+      const file = values.logo[0];
+      let imgUrl = "";
 
-  const onsubmit=(data:any )=>{
-   
-  }
+      if (file) {
+        console.log("i am inside the file section");
+        try {
+          const fileType = file.name.split(".");
+          console.log(fileType, "type of  file");
+          const type = ImgFormats.find(
+            (i: string) => i == (fileType[1] as string)
+          );
+          if (!type) {
+            setError("logo", {
+              message: "Please upload Img at valid format",
+            });
+            return;
+          }
+
+          const { data, error } = await HandleUploadImg(
+            file,
+            "workspace-logos"
+          );
+
+          if (error) {
+            toast.error(error, { duration: 3000 });
+            return;
+          }
+
+          imgUrl = data as string;
+        } catch (error: any) {
+          toast.error(error.message, { duration: 3000 });
+          return;
+        }
+      }
+    } catch (error) {
+      toast.error("Unexpected Error  Pls try again", { duration: 3000 });
+    } finally {
+      reset();
+    }
+  };
   return (
     <Card
       className="w-[800px]
@@ -44,9 +102,7 @@ const DashboardSetup = ({ user, subscription }: prop) => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form
-        onSubmit={handleSubmit(onsubmit)} 
-        >
+        <form onSubmit={handleSubmit(onsubmit)}>
           <div className="flex flex-col gap-4">
             <div
               className="flex
@@ -115,7 +171,11 @@ const DashboardSetup = ({ user, subscription }: prop) => {
               )}
             </div>
             <div className="self-end">
-              <Button disabled={isLoading} type="submit">
+              <Button
+                disabled={isLoading}
+                type="submit"
+                className="cursor-pointer"
+              >
                 {!isLoading ? "Create Workspace" : <Loader />}
               </Button>
             </div>
