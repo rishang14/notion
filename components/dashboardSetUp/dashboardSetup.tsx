@@ -1,5 +1,5 @@
 "use client";
-import React  from "react";
+import React, { useState }  from "react";
 import { useForm } from 'react-hook-form';
 import { Session } from "next-auth"; 
 import {
@@ -12,7 +12,8 @@ import {
 import { Button } from "../ui/button";
 import { Label } from "@radix-ui/react-label";
 import { Input } from "../ui/input";
-import Loader from "../global/Loader";
+import Loader from "../global/Loader"; 
+import EmojiPicker from "../global/emojiPicker";
 import { Subscription } from "@prisma/client";
 
 interface prop {
@@ -22,6 +23,12 @@ interface prop {
 
 const DashboardSetup = ({ user, subscription }: prop) => {
   const {register,handleSubmit,formState:{isLoading,errors,isSubmitting}} =useForm(); 
+  const [selectedEmoji,setSelectedEmoji]=useState('💼'); 
+
+
+  const onsubmit=(data:any )=>{
+   
+  }
   return (
     <Card
       className="w-[800px]
@@ -38,7 +45,7 @@ const DashboardSetup = ({ user, subscription }: prop) => {
       </CardHeader>
       <CardContent>
         <form
-         
+        onSubmit={handleSubmit(onsubmit)} 
         >
           <div className="flex flex-col gap-4">
             <div
@@ -47,9 +54,9 @@ const DashboardSetup = ({ user, subscription }: prop) => {
             gap-4"
             >
               <div className="text-5xl">
-                {/* <EmojiPicker getValue={(emoji) => setSelectedEmoji(emoji)}>
+                <EmojiPicker getvalues={(emoji) => setSelectedEmoji(emoji)}>
                   {selectedEmoji}
-                </EmojiPicker> */}
+                </EmojiPicker>
               </div>
               <div className="w-full ">
                 <Label
