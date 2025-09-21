@@ -1,9 +1,7 @@
 "use server";
-import { Subscription } from "@prisma/client";
+import { Subscription, Workspace } from "@prisma/client";
 import prisma from "../prisma";
 import { validate } from "uuid";
-import { uuid } from "zod";
-import { error } from "console";
 
 export const getUserSubscriptionStatus = async (userid: string) => {
   try {
@@ -63,3 +61,59 @@ export const getFolders = async (wId: string) => {
     return{ data:null,error:"Error"};
   }
 };
+
+
+export const  getPersonalWorkSpace=async(userid:string)=>{ 
+  if(!userid) return []; 
+
+  const privateWorkSpace:Workspace[]= await  prisma.workspace.findMany({
+    where:{
+      workspaceOwner:userid, 
+      collaborators:{
+       none:{},
+      }
+    }, 
+    orderBy:{
+      createdAt:"asc"
+    }  
+  }) 
+
+  return privateWorkSpace;
+}  
+
+
+export const getCollboratorWorkspace= async(userid:string)=>{
+  if(!userid)return []; 
+
+  const collaboratorworkspace:Workspace[]= await prisma.workspace.findMany({
+    where:{
+      collaborators:{
+        some:{userId:userid}
+      }, 
+    }, 
+    orderBy:{
+      createdAt:"asc"
+    }
+  }) 
+
+ return collaboratorworkspace;
+}
+
+
+export const getsharedWorksace= async(userid:string)=>{
+ if(!userid)return []; 
+
+  const sharedWorksace:Workspace[]= await prisma.workspace.findMany({
+    where:{ 
+      workspaceOwner:userid,
+      collaborators:{
+        some:{}
+      }, 
+    }, 
+    orderBy:{
+      createdAt:"asc"
+    }
+  }) 
+
+ return sharedWorksace;
+}

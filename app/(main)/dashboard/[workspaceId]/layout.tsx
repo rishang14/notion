@@ -1,5 +1,6 @@
 // import MobileSidebar from '@/components/sidebar/mobile-sidebar';
 // import Sidebar from '@/components/sidebar/sidebar';
+import Sidebar from "@/components/sidebar/sidebar";
 import React from "react";
 
 interface LayoutProps {
@@ -17,7 +18,7 @@ const Layout = async ({ children, params }: LayoutProps) => {
       w-screen
   "
     >
-      {/* <Sidebar params={params} /> */}
+      <Sidebar workspaceid={workspaceId}/>
       {/* <MobileSidebar> */}
       {/* <Sidebar
         //   params={params}
