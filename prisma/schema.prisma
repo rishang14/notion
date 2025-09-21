@@ -14,17 +14,15 @@ datasource db {
 } 
 
 
-// --------------------
-// MODELS
-// --------------------
-// =====================
-// ENUMS
-// =====================
+generator zod {
+  provider         = "zod-prisma-types"
+  output           = "./zod"
+  useMultipleFiles = true
+  relationModel    = true
+  generateClient   = true
+}
 
 
-// =====================
-// MODELS (TABLES)
-// =====================
 
 model Workspace {
   id             String   @id @default(uuid())
@@ -126,7 +124,7 @@ model Customer {
 }
 
 model Product {
-  id          String  @id
+  id          String  @id @default(uuid())
   active      Boolean?
   name        String?
   description String?
@@ -137,7 +135,7 @@ model Product {
 }
 
 model Price {
-  id             String   @id
+  id             String   @id @default(uuid())
   productId      String?
   active         Boolean?
   description    String?
@@ -154,7 +152,7 @@ model Price {
 }
 
 model Subscription {
-  id                String   @id
+  id                String   @id @default(uuid())
   userId            String
   status            subscription_status?
   metadata          Json?
