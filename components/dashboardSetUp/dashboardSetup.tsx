@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useTransition } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
 import { Session } from "next-auth";
 import {
@@ -17,21 +17,26 @@ import EmojiPicker from "../global/emojiPicker";
 import { Subscription } from "@prisma/client";
 import { CreateWorkspaceFormSchema } from "@/lib/types";
 import { ImgFormats } from "@/lib/constants";
-import z, { any, unknown } from "zod";
+import z  from "zod";
 import { HandleUploadImg } from "@/lib/uploadImg";
 import { toast } from "sonner";
+import { useSession } from "next-auth/react";
+import { createWorkSpace } from "@/lib/queries/db.queries";
+import { useRouter } from "next/navigation";
 interface prop {
-  user: Session;
   subscription: Subscription | null;
 }
 
-const DashboardSetup = ({ user, subscription }: prop) => {
-  const [selectedEmoji, setSelectedEmoji] = useState("💼");
+const DashboardSetup = ({  subscription }: prop) => {
+  const router = useRouter();
+  const [selectedEmoji, setSelectedEmoji] = useState("💼"); 
+  const [isPending,startTransition]=useTransition()
+  const { data } = useSession();
   const {
     register,
     handleSubmit,
     reset,
-    formState: { isLoading, errors, isSubmitting },
+    formState: {  errors, isSubmitting },
     setError,
   } = useForm({
     mode: "onChange",
@@ -41,7 +46,6 @@ const DashboardSetup = ({ user, subscription }: prop) => {
     },
   });
 
-  console.log("errors", errors);
   const onsubmit: SubmitHandler<
     z.infer<typeof CreateWorkspaceFormSchema>
   > = async (values) => {
@@ -81,7 +85,22 @@ const DashboardSetup = ({ user, subscription }: prop) => {
           return;
         }
       }
-    } catch (error) {
+
+      const workSpaceDetail = {
+        iconId: selectedEmoji,
+        title: workspaceName,
+        workspaceOwner: data?.user.id as string,
+        ...(imgUrl && { logo: imgUrl }),
+      };
+
+      const Createdworkspace = await createWorkSpace(workSpaceDetail);
+      if (Createdworkspace) { 
+        startTransition(()=>{
+          router.push(`/dashboard/${Createdworkspace.id}`);
+        })
+      }
+    } catch (error) { 
+      console.log("error",error)
       toast.error("Unexpected Error  Pls try again", { duration: 3000 });
     } finally {
       reset();
@@ -117,9 +136,7 @@ const DashboardSetup = ({ user, subscription }: prop) => {
               <div className="w-full ">
                 <Label
                   htmlFor="workspaceName"
-                  className="text-sm
-                  text-muted-foreground
-                "
+                  className="text-sm text-muted-foreground"
                 >
                   Name
                 </Label>
@@ -127,7 +144,7 @@ const DashboardSetup = ({ user, subscription }: prop) => {
                   id="workspaceName"
                   type="text"
                   placeholder="Workspace Name"
-                  disabled={isLoading}
+                  disabled={isSubmitting || isPending}
                   {...register("workspaceName", {
                     required: "Workspace name is required",
                   })}
@@ -151,7 +168,7 @@ const DashboardSetup = ({ user, subscription }: prop) => {
                 type="file"
                 accept="image/*"
                 placeholder="Workspace Name"
-                // disabled={isLoading || subscription?.status !== 'active'}
+                disabled={isSubmitting || isPending }
                 {...register("logo", {
                   required: false,
                 })}
@@ -163,8 +180,7 @@ const DashboardSetup = ({ user, subscription }: prop) => {
                 <small
                   className="
                   text-muted-foreground
-                  block
-              "
+                  block"
                 >
                   To customize your workspace, you need to be on a Pro Plan
                 </small>
@@ -172,11 +188,10 @@ const DashboardSetup = ({ user, subscription }: prop) => {
             </div>
             <div className="self-end">
               <Button
-                disabled={isLoading}
+                disabled={isSubmitting || isPending}
                 type="submit"
-                className="cursor-pointer"
-              >
-                {!isLoading ? "Create Workspace" : <Loader />}
+                className="cursor-pointer">
+                {isSubmitting || isPending ? <Loader /> : "Create Workspace"}
               </Button>
             </div>
           </div>

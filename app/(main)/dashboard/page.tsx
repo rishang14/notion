@@ -31,7 +31,7 @@ const DashboardPage = async () => {
         items-center
     "
       >
-        <DashboardSetup user={session} subscription={subscription} />
+        <DashboardSetup  subscription={subscription} />
       </div>
     );
   }
