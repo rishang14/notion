@@ -17,26 +17,28 @@ import EmojiPicker from "../global/emojiPicker";
 import { Subscription } from "@prisma/client";
 import { CreateWorkspaceFormSchema } from "@/lib/types";
 import { ImgFormats } from "@/lib/constants";
-import z  from "zod";
+import z from "zod";
 import { HandleUploadImg } from "@/lib/uploadImg";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 import { createWorkSpace } from "@/lib/queries/db.queries";
 import { useRouter } from "next/navigation";
+import { useAppSotre } from "@/lib/state.provider";
 interface prop {
   subscription: Subscription | null;
 }
 
-const DashboardSetup = ({  subscription }: prop) => {
+const DashboardSetup = ({ subscription }: prop) => {
   const router = useRouter();
-  const [selectedEmoji, setSelectedEmoji] = useState("💼"); 
-  const [isPending,startTransition]=useTransition()
+  const { addWorkspace } = useAppSotre();
+  const [selectedEmoji, setSelectedEmoji] = useState("💼");
+  const [isPending, startTransition] = useTransition();
   const { data } = useSession();
   const {
     register,
     handleSubmit,
     reset,
-    formState: {  errors, isSubmitting },
+    formState: { errors, isSubmitting },
     setError,
   } = useForm({
     mode: "onChange",
@@ -94,13 +96,14 @@ const DashboardSetup = ({  subscription }: prop) => {
       };
 
       const Createdworkspace = await createWorkSpace(workSpaceDetail);
-      if (Createdworkspace) { 
-        startTransition(()=>{
+      if (Createdworkspace) {
+        addWorkspace({ ...Createdworkspace, folders: [] });
+        startTransition(() => {
           router.push(`/dashboard/${Createdworkspace.id}`);
-        })
+        });
       }
-    } catch (error) { 
-      console.log("error",error)
+    } catch (error) {
+      console.log("error", error);
       toast.error("Unexpected Error  Pls try again", { duration: 3000 });
     } finally {
       reset();
@@ -168,7 +171,7 @@ const DashboardSetup = ({  subscription }: prop) => {
                 type="file"
                 accept="image/*"
                 placeholder="Workspace Name"
-                disabled={isSubmitting || isPending }
+                disabled={isSubmitting || isPending}
                 {...register("logo", {
                   required: false,
                 })}
@@ -190,7 +193,8 @@ const DashboardSetup = ({  subscription }: prop) => {
               <Button
                 disabled={isSubmitting || isPending}
                 type="submit"
-                className="cursor-pointer">
+                className="cursor-pointer"
+              >
                 {isSubmitting || isPending ? <Loader /> : "Create Workspace"}
               </Button>
             </div>
