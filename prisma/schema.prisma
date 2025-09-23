@@ -49,7 +49,6 @@ model Folder {
   inTrash     String?
   bannerUrl   String?
   workspaceId String
-
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   files     File[]
 }

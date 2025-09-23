@@ -13,14 +13,14 @@ import { ScrollArea } from "../ui/scroll-area";
 import Workspacedropdown from "./workspacedropdown";
 import Planusage from "./planusage";
 import Nativenavigation from "./nativenavigation";
+import Foldersdropdownlist from "./foldersdropdownlist";
 
 const Sidebar = async ({ workspaceid }: { workspaceid: string }) => {
   const session = await auth();
   if (!session) {
     redirect("/login");
   }
-  const { data: subscriptionData, error: subscriptionerror } =
-    await getUserSubscriptionStatus(session?.user.id);
+  const { data: subscriptionData, error: subscriptionerror } =  await getUserSubscriptionStatus(session?.user.id);
 
   const { data: workSpacefolders, error: folderError } = await getFolders(
     workspaceid
@@ -77,10 +77,11 @@ const Sidebar = async ({ workspaceid }: { workspaceid: string }) => {
           to-transparent 
           z-40"
           />
-          {/* <FoldersDropdownList
-            workspaceFolders={workspaceFolderData || []}
-            workspaceId={params.workspaceId}
-          /> */}
+          <Foldersdropdownlist
+            workspaceFolders={workSpacefolders || []}
+            workspaceId={workspaceid} 
+            subscriptionData={subscriptionData}
+          />
         </ScrollArea>
       </div>
       {/* <UserCard subscription={subscriptionData} /> */}

@@ -1,8 +1,10 @@
 "use server";
-import { Subscription, Workspace } from "@prisma/client";
+import { Folder, Subscription, Workspace } from "@prisma/client";
 import prisma from "../prisma";
 import { validate } from "uuid";
 import { User } from "@prisma/client";
+import { error } from "console";
+import { da } from "zod/v4/locales";
 
 export const getUserSubscriptionStatus = async (userid: string) => {
   try {
@@ -128,7 +130,7 @@ export const addCollaborator = async (users: User[], workspaceId: string) => {
 export const getAllUsersFromSeacrh = async (email: string) => {
   if (!email) return [];
 
-  return  prisma.user.findMany({
+  return prisma.user.findMany({
     where: {
       email: {
         startsWith: email, // case-sensitive
@@ -136,4 +138,21 @@ export const getAllUsersFromSeacrh = async (email: string) => {
       },
     },
   });
+};
+
+export const createFolder = async (values: any) => { 
+  if(!values)return {data:null ,error:null}
+
+  const createdFolder = await prisma.folder.create({
+    data: {
+      title: values.title,
+      iconId: values.iconId,
+      workspaceId: values.workspaceId,
+    },
+  }); 
+
+  if(!createdFolder){
+    return {data:null ,error:"Not able to created"}
+  }
+  return {data:createdFolder,error:null};
 };
