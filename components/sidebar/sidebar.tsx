@@ -11,7 +11,8 @@ import {
 } from "@/lib/queries/db.queries";
 import { ScrollArea } from "../ui/scroll-area";
 import Workspacedropdown from "./workspacedropdown";
-import { Workspace } from "@prisma/client";
+import Planusage from "./planusage";
+import Nativenavigation from "./nativenavigation";
 
 const Sidebar = async ({ workspaceid }: { workspaceid: string }) => {
   const session = await auth();
@@ -21,7 +22,7 @@ const Sidebar = async ({ workspaceid }: { workspaceid: string }) => {
   const { data: subscriptionData, error: subscriptionerror } =
     await getUserSubscriptionStatus(session?.user.id);
 
-  const { data: folderData, error: folderError } = await getFolders(
+  const { data: workSpacefolders, error: folderError } = await getFolders(
     workspaceid
   );
 
@@ -44,7 +45,7 @@ const Sidebar = async ({ workspaceid }: { workspaceid: string }) => {
   return (
     <aside
       className={twMerge(
-        "hidden sm:flex sm:flex-col w-[280px] shrink-0 p-4 md:gap-4 !justify-between"
+        "hidden sm:flex sm:flex-col w-[300px] shrink-0 p-4 md:gap-4 !justify-between"
       )}
     >
       <div>
@@ -54,11 +55,12 @@ const Sidebar = async ({ workspaceid }: { workspaceid: string }) => {
           collaboratorWorkspace={collaboratorWorkspace}
           defaultWorkSpace={defaultWorkspace}
         />
-        {/* <PlanUsage
-          foldersLength={workspaceFolderData?.length || 0}
-          subscription={subscriptionData}
-        /> */}
-        {/* <NativeNavigation myWorkspaceId={params.workspaceId} /> */}
+        <Planusage
+          foldersLength={workSpacefolders?.length || 0}
+          subscription={subscriptionData} 
+          workSpaceid={workspaceid}
+        />
+        <Nativenavigation workspaceid={workspaceid} />
         <ScrollArea
           className="overflow-auto relative
           h-[450px]

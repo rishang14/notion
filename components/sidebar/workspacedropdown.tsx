@@ -4,6 +4,7 @@ import { Workspace } from "@prisma/client";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import SelectedWorkspace from "./selectedworkspace";
 import CustomDialogTrigger from "../global/customdialogtrigger";
+import Workspacecreator from "./workspacecreator";
 
 type prop = {
   sharedWorkspace: Workspace[] | [];
@@ -18,41 +19,42 @@ const Workspacedropdown = ({
   personalWorkspace,
   defaultWorkSpace,
 }: prop) => {
-  const { setWorkspaces } = useAppSotre(); 
-  const [selectedWorksapce,setSeletectedWorkspace]=useState(defaultWorkSpace);  
-  const [open,setOpen]=useState(false)
+  const { setWorkspaces } = useAppSotre();
+  const [selectedWorksapce, setSeletectedWorkspace] =
+    useState(defaultWorkSpace);
+  const [open, setOpen] = useState(false);
 
   const allWorkspaces = useMemo(() => {
     return [
       ...sharedWorkspace,
       ...collaboratorWorkspace,
       ...personalWorkspace,
-    ].map((workspace)=> ({ ...workspace, folders: [] }));
+    ].map((workspace) => ({ ...workspace, folders: [] }));
   }, [sharedWorkspace, collaboratorWorkspace, personalWorkspace]);
 
   useEffect(() => {
-    if (allWorkspaces.length > 0){
+    if (allWorkspaces.length > 0) {
       setWorkspaces(allWorkspaces);
     }
-  }, [allWorkspaces]);  
+  }, [allWorkspaces]);
 
-const handleSelectedWorkspace = useCallback((option: Workspace) => {
-  setSeletectedWorkspace(option);
-  setOpen(false);
-}, []);
+  const handleSelectedWorkspace = useCallback((option: Workspace) => {
+    setSeletectedWorkspace(option);
+    setOpen(false);
+  }, []);
 
   return (
-     <div
-      className=" relative inline-block
+    <div
+      className=" relative inline-block 
       text-left
   "
     >
-      <div>
+      <div className="">
         <span onClick={() => setOpen((prev) => !prev)}>
           {selectedWorksapce ? (
-            <SelectedWorkspace workspace={selectedWorksapce } />
+            <SelectedWorkspace workspace={selectedWorksapce} />
           ) : (
-            'Select a workspace'
+            "Select a workspace"
           )}
         </span>
       </div>
@@ -65,10 +67,9 @@ const handleSelectedWorkspace = useCallback((option: Workspace) => {
           shadow-md
           z-50
           h-[190px]
-          bg-black/10
           backdrop-blur-lg
           group
-          overflow-auto
+          overflow-y-auto
           border-[1px]
           border-muted
       "
@@ -117,7 +118,7 @@ const handleSelectedWorkspace = useCallback((option: Workspace) => {
             </div>
             <CustomDialogTrigger
               header="Create A Workspace"
-            //   content={<WorkspaceCreator />}
+              content={<Workspacecreator />}
               description="Workspaces give you the power to collaborate with others. You can change your workspace privacy settings after creating the workspace too."
             >
               <div
@@ -149,7 +150,7 @@ const handleSelectedWorkspace = useCallback((option: Workspace) => {
         </div>
       )}
     </div>
-  )
+  );
 };
 
 export default Workspacedropdown;

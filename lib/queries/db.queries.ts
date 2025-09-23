@@ -2,6 +2,7 @@
 import { Subscription, Workspace } from "@prisma/client";
 import prisma from "../prisma";
 import { validate } from "uuid";
+import { User } from "@prisma/client";
 
 export const getUserSubscriptionStatus = async (userid: string) => {
   try {
@@ -48,72 +49,91 @@ export const getFolders = async (wId: string) => {
     const folders = await prisma.folder.findMany({
       where: {
         workspaceId: wId,
-      }, 
-      orderBy:{
-        createdAt:'asc'
-      }
-    });  
-    
-    return {data:folders,error:null}
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    });
 
-  } catch (error:any) { 
-    console.log("error in get folder ",error.message);
-    return{ data:null,error:"Error"};
+    return { data: folders, error: null };
+  } catch (error: any) {
+    console.log("error in get folder ", error.message);
+    return { data: null, error: "Error" };
   }
 };
 
+export const getPersonalWorkSpace = async (userid: string) => {
+  if (!userid) return [];
 
-export const  getPersonalWorkSpace=async(userid:string)=>{ 
-  if(!userid) return []; 
-
-  const privateWorkSpace:Workspace[]= await  prisma.workspace.findMany({
-    where:{
-      workspaceOwner:userid, 
-      collaborators:{
-       none:{},
-      }
-    }, 
-    orderBy:{
-      createdAt:"asc"
-    }  
-  }) 
+  const privateWorkSpace: Workspace[] = await prisma.workspace.findMany({
+    where: {
+      workspaceOwner: userid,
+      collaborators: {
+        none: {},
+      },
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+  });
 
   return privateWorkSpace;
-}  
+};
 
+export const getCollboratorWorkspace = async (userid: string) => {
+  if (!userid) return [];
 
-export const getCollboratorWorkspace= async(userid:string)=>{
-  if(!userid)return []; 
+  const collaboratorworkspace: Workspace[] = await prisma.workspace.findMany({
+    where: {
+      collaborators: {
+        some: { userId: userid },
+      },
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+  });
 
-  const collaboratorworkspace:Workspace[]= await prisma.workspace.findMany({
-    where:{
-      collaborators:{
-        some:{userId:userid}
-      }, 
-    }, 
-    orderBy:{
-      createdAt:"asc"
-    }
-  }) 
+  return collaboratorworkspace;
+};
 
- return collaboratorworkspace;
-}
+export const getsharedWorksace = async (userid: string) => {
+  if (!userid) return [];
 
+  const sharedWorksace: Workspace[] = await prisma.workspace.findMany({
+    where: {
+      workspaceOwner: userid,
+      collaborators: {
+        some: {},
+      },
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+  });
 
-export const getsharedWorksace= async(userid:string)=>{
- if(!userid)return []; 
+  return sharedWorksace;
+};
 
-  const sharedWorksace:Workspace[]= await prisma.workspace.findMany({
-    where:{ 
-      workspaceOwner:userid,
-      collaborators:{
-        some:{}
-      }, 
-    }, 
-    orderBy:{
-      createdAt:"asc"
-    }
-  }) 
+export const addCollaborator = async (users: User[], workspaceId: string) => {
+  await prisma.collaborator.createMany({
+    data: users.map((user) => ({
+      workspaceId,
+      userId: user.id as string,
+    })),
+    skipDuplicates: true,
+  });
+};
 
- return sharedWorksace;
-}
+export const getAllUsersFromSeacrh = async (email: string) => {
+  if (!email) return [];
+
+  return  prisma.user.findMany({
+    where: {
+      email: {
+        startsWith: email, // case-sensitive
+        mode: "insensitive", // <-- makes it ILIKE (case-insensitive)
+      },
+    },
+  });
+};
