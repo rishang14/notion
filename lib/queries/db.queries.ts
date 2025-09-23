@@ -1,10 +1,10 @@
 "use server";
-import { Folder, Subscription, Workspace } from "@prisma/client";
+import { Folder, Subscription, Workspace, User, File } from "@prisma/client";
 import prisma from "../prisma";
 import { validate } from "uuid";
-import { User } from "@prisma/client";
+import { FolderCreateInputSchema } from "@/prisma/zod";
 import { error } from "console";
-import { da } from "zod/v4/locales";
+import { date } from "zod";
 
 export const getUserSubscriptionStatus = async (userid: string) => {
   try {
@@ -140,19 +140,90 @@ export const getAllUsersFromSeacrh = async (email: string) => {
   });
 };
 
-export const createFolder = async (values: any) => { 
-  if(!values)return {data:null ,error:null}
+export const createFolder = async (values: Partial<File>) => {
+  try {
+    if (!values) return { data: null, error: null };
 
-  const createdFolder = await prisma.folder.create({
-    data: {
-      title: values.title,
-      iconId: values.iconId,
-      workspaceId: values.workspaceId,
-    },
-  }); 
+    const createdFolder = await prisma.folder.create({
+      data: {
+        title: values.title as string,
+        iconId: values.iconId as string,
+        workspaceId: values.workspaceId as string,
+      },
+    });
 
-  if(!createdFolder){
-    return {data:null ,error:"Not able to created"}
+    if (!createdFolder) {
+      return { data: null, error: "Not able to created" };
+    }
+    return { data: createdFolder, error: null };
+  } catch (error) {
+    console.log("while creating folder error", error);
+    return { data: null, error: "error" };
   }
-  return {data:createdFolder,error:null};
+};
+
+export const updateFolder = async (values: Partial<Folder>, fid: string) => {
+  console.log(fid);
+  try {
+    const updateFolder = await prisma.folder.update({
+      where: {
+        id: fid,
+      },
+      data: {
+        ...values,
+      },
+    });
+
+    if (!updateFolder) {
+      return { data: null, error: "something went wrong" };
+    }
+
+    return { data: updateFolder, error: null };
+  } catch (error) {
+    console.log("while updating the folder got error :", error);
+    return { data: null, error: "Error" };
+  }
+};
+
+export const updateFiles = async (values: Partial<File>, fileid: string) => {
+  try {
+    const updatedFile = await prisma.file.update({
+      where: {
+        id: fileid,
+      },
+      data: {
+        ...values,
+      },
+    });
+
+    if (!updatedFile) {
+      return { data: null, error: "error" };
+    }
+
+    return { data: updatedFile, error: null };
+  } catch (error) {
+    console.log("error while updating file ", error);
+    return { date: null, error: "error" };
+  }
+};
+
+export const createFile = async (values: Partial<File>) => {
+  try {
+    const createdFile = await prisma.file.create({
+      data: {
+        title: values.title as string,
+        workspaceId: values.workspaceId as string,
+        iconId: values.iconId as string,
+        folderId: values.folderId as string,
+      },
+    });
+
+    if (!createdFile) {
+      return { data: null, error: "Error" };
+    }
+    return { data: createdFile, error: null };
+  } catch (error) {
+    console.log("error while creating file ", error);
+    return { data: null, error: "Error" };
+  }
 };

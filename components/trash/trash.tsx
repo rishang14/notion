@@ -2,11 +2,14 @@ import React from 'react';
 import CustomDialogTrigger from '../global/customdialogtrigger';
 import Trashrestore from './trashrestore';
 
-interface TrashProps {
-  children: React.ReactNode;
+type props=  {
+  children: React.ReactNode; 
+  size:number, 
+  onClick:()=> void , 
+  className?:string,
 }
 
-const Trash: React.FC<TrashProps> = ({ children }) => {
+const Trash = ({ children ,size,onClick,className}:props) => {
   return (
     <CustomDialogTrigger
       header="Trash"

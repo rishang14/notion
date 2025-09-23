@@ -7,6 +7,9 @@ import { Accordion } from "../ui/accordion";
 import TooltipComponent from "../global/tooltipprovider";
 import { Folder, Subscription } from "@prisma/client";
 import { PlusIcon } from "lucide-react";
+import { usePathname } from "next/navigation";
+import path from "path";
+import Dropdown from "./dropdown";
 
 type props = {
   workspaceId: string;
@@ -19,8 +22,16 @@ const Foldersdropdownlist = ({
   workspaceFolders,
   subscriptionData,
 }: props) => {
-  const { setFolders, workspaces,addFolder } = useAppSotre();
-  const [isOpen, setOpen] = useState<boolean>(false);
+  const { setFolders, workspaces,addFolder,setPathName,folderId } = useAppSotre();
+  const [isOpen, setOpen] = useState<boolean>(false); 
+  const pathname= usePathname();  
+
+
+  useEffect(()=>{
+  if(pathname){
+    setPathName(pathname);
+  }
+  },[pathname])
 
   const newFolders = useMemo(() => {
     return workspaceFolders.map((folder) => ({
@@ -66,7 +77,7 @@ const Foldersdropdownlist = ({
 
   return ( 
     <>
-          <div
+        <div
         className="flex
         sticky 
         z-20 
@@ -102,10 +113,10 @@ const Foldersdropdownlist = ({
       </div>
       <Accordion
         type="multiple"
-        // defaultValue={[folderId || '']}
+        defaultValue={[folderId as string,""]}
         className="pb-20"
       >
-        {/* {folders
+        {folders
           .filter((folder) => !folder.inTrash)
           .map((folder) => (
             <Dropdown
@@ -115,7 +126,7 @@ const Foldersdropdownlist = ({
               id={folder.id}
               iconId={folder.iconId}
             />
-          ))} */}
+          ))}
       </Accordion>
 </>
   );

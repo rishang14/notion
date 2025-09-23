@@ -1,25 +1,246 @@
-import React from 'react' 
-import { AccordionItem,AccordionTrigger,AccordionContent } from '../ui/accordion';  
-import TooltipComponent  from '../global/tooltipprovider'; 
-import Trash from '../trash/trash'; 
-import { useAppSotre } from '@/lib/state.provider';
-import { PlusIcon } from 'lucide-react';
+import React, { startTransition, useEffect, useMemo, useState } from "react";
+import {
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "../ui/accordion";
+import TooltipComponent from "../global/tooltipprovider";
+import EmojiPicker from "../global/emojiPicker";
+import Trash from "../trash/trash";
+import { useAppSotre } from "@/lib/state.provider";
+import { PlusIcon, Trash2 } from "lucide-react";
+import clsx from "clsx";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  createFile,
+  updateFiles,
+  updateFolder as updatefolder,
+} from "@/lib/queries/db.queries";
+import { toast } from "sonner";
+import { Input } from "../ui/input";
+import { File } from "@prisma/client";
 
-type props={
+type props = {
   title: string;
   id: string;
-  listType: 'folder' | 'file';
+  listType: "folder" | "file";
   iconId: string;
   children?: React.ReactNode;
-  disabled?: boolean; 
-  workSpaceId:string
+  disabled?: boolean;
+};
 
-}
+const Dropdown = ({
+  title,
+  id,
+  listType,
+  iconId,
+  children,
+  disabled,
+}: props) => {
+  const {
+    workspaces,
+    folderId,
+    setPathName,
+    workSpaceId,
+    updateFolder,
+    updateFile,
+    addFile,
+  } = useAppSotre();
+  const router = useRouter();
+  const isFolder = listType === "folder";
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const pathname = usePathname();
 
-const Dropdown = ({title,id,listType,children,disabled,workSpaceId}:props) => { 
-    const {workspaces} =useAppSotre()
+  useEffect(() => {
+    if (pathname) {
+      setPathName(pathname);
+    }
+  }, [pathname]);
+
+  // get the title of folder
+  const folderTitle: string | undefined = useMemo(() => {
+    if (listType === "folder") {
+      const stateTtile = workspaces
+        .find((w) => w.id === workSpaceId)
+        ?.folders.find((f) => f.id === id)?.title;
+      if (title === stateTtile || !stateTtile) return title;
+      return stateTtile;
+    }
+  }, [title, id, workspaces, workSpaceId, listType]);
+
+  //get the title of folder
+
+  const fileTitle: string | undefined = useMemo(() => {
+    if (listType === "file") {
+      const filandFolderid = id.split("folder");
+      const stateTitle = workspaces
+        .find((w) => w.id === workSpaceId)
+        ?.folders.find((f) => f.id === filandFolderid[0])
+        ?.files.find((f) => f.id === filandFolderid[1])?.title;
+      if (title === stateTitle || !stateTitle) return title;
+      return stateTitle;
+    }
+  }, [title, id, workSpaceId, workspaces, listType]);
+
+  // css for changing statebetween folder and file
+  const groupIdentifies = useMemo(
+    () =>
+      clsx(
+        "dark:text-white whitespace-nowrap flex justify-between space-y-4  items-center w-full relative",
+        {
+          "group/folder": isFolder,
+          "group/file": !isFolder,
+        }
+      ),
+    [isFolder]
+  );
+  const listStyles = useMemo(
+    () =>
+      clsx("relative", {
+        "border-none text-md": isFolder,
+        "border-none ml-6 text-[16px] py-1": !isFolder,
+      }),
+    [isFolder]
+  );
+  const hoverStyles = useMemo(
+    () =>
+      clsx(
+        "h-full hidden rounded-sm absolute right-0 flex items-center gap-2 justify-between",
+        {
+          "group-hover/file:block": listType === "file",
+          "group-hover/folder:block": listType === "folder",
+        }
+      ),
+    [isFolder]
+  );
+
+  //send it to the folder one or file one
+  const navigatatePage = (accordionid: string, listtype: string) => {
+    startTransition(() => {
+      if (listtype === "folder") {
+        router.push(`/dashboard/${workSpaceId}/${accordionid}`);
+      }
+
+      if (listtype === "file") {
+        router.push(
+          `/dashboard/${workSpaceId}/${folderId}/${
+            accordionid.split("folder")[1]
+          }`
+        );
+      }
+    });
+  };
+
+  // emoji change for the workspace
+  const onChangeEmoji = async (selectedEmoji: string) => {
+    // update the emoji
+    if (listType != "folder") return;
+    const { data, error } = await updatefolder(
+      { iconId: selectedEmoji },
+      folderId as string
+    );
+    if (error) {
+      toast.error("something went wrong while updating", { duration: 3000 });
+    }
+    if (workSpaceId && folderId) {
+      updateFolder(workSpaceId as string, folderId as string, {
+        iconId: selectedEmoji,
+      });
+    }
+    toast.success("emoji updated", { duration: 3000 });
+  };
+
+  const handleDoubleClick = () => {
+    setIsEditing(true);
+  };
+
+  // to update the title
+  const handleBlur = async () => {
+    if (!isEditing) return;
+    setIsEditing(false);
+    const fid = id.split("folder one   with the split one ");
+    console.log(fid, "fid");
+    console.log(id, "id normal one ");
+    console.log(folderId, " folder id frim the zustand ");
+    if (fid?.length === 1) {
+      if (!folderTitle) return;
+      const { data, error: folderError } = await updatefolder(
+        { title: folderTitle },
+        fid[0]
+      );
+      if (folderError) {
+        toast.success("Unable to update folder title ", { duration: 3000 });
+        return;
+      }
+      toast.success("folder title updated", { duration: 3000 });
+    }
+
+    if (fid?.length === 2 && fid[1]) {
+      if (!fileTitle) {
+        return;
+      }
+      const { data, error: fileerror } = await updateFiles(
+        { title: folderTitle },
+        fid[1]
+      );
+
+      if (fileerror) {
+        toast.error("Unable to update file title ", { duration: 3000 });
+        return;
+      }
+      toast.success("file title updated", { duration: 3000 });
+    }
+  };
+
+  // change the folder title
+  const folderTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!workSpaceId) return;
+    if (listType === "folder") {
+      const fid = id.split("folder");
+
+      if (fid?.length === 1) {
+        updateFolder(workSpaceId, fid[0], { title: e.target.value });
+      }
+    }
+  };
+  // change the file tilte
+  const fileTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!workSpaceId) return;
+    if (listType === "file") {
+      const fid = id.split("folder");
+      if (fid.length === 2 && fid[1]) {
+        updateFile(workSpaceId, fid[0], fid[1], { title: e.target.value });
+      }
+    }
+  };
+
+  // create a new file
+  const handleAddnewFile = async () => {
+    if (!workSpaceId) return;
+    const fid = id.split("folder");
+    if (fid.length < 0) return;
+    const newfileData: Partial<File> = {
+      folderId: fid[0],
+      title: "untitled",
+      workspaceId: workSpaceId,
+      iconId: "📂",
+    };
+    const { data, error } = await createFile(newfileData);
+
+    if (error) {
+      toast.error("Unable to create a file something went wrong");
+      return;
+    }
+
+    toast.success("File created successfully", { duration: 3000 });
+    if (data) {
+      addFile(workSpaceId, fid[0], data);
+    }
+  };
+
+  const moveToTrash = () => {};
   return (
-     <AccordionItem
+    <AccordionItem
       value={id}
       className={listStyles}
       onClick={(e) => {
@@ -31,53 +252,53 @@ const Dropdown = ({title,id,listType,children,disabled,workSpaceId}:props) => {
         id={listType}
         className="hover:no-underline 
         p-2 
-        dark:text-muted-foreground 
+        dark:text-muted-foreground  
         text-sm"
-        disabled={listType === 'file'}
+        disabled={listType === "file"}
       >
         <div className={groupIdentifies}>
           <div
             className="flex 
-          gap-4 
+          gap-4
           items-center 
           justify-center 
           overflow-hidden"
           >
             <div className="relative">
-              <EmojiPicker getValue={onChangeEmoji}>{iconId}</EmojiPicker>
+              <EmojiPicker getvalues={onChangeEmoji}>{iconId}</EmojiPicker>
             </div>
-            <input
+            <Input
               type="text"
-              value={listType === 'folder' ? folderTitle : fileTitle}
+              value={listType === "folder" ? folderTitle : fileTitle}
               className={clsx(
-                'outline-none overflow-hidden w-[140px] text-neutral-7',
+                "outline-none overflow-hidden w-[140px]  text-neutral-7",
                 {
-                  'bg-muted cursor-text': isEditing,
-                  'bg-transparent cursor-pointer': !isEditing,
+                  "bg-muted cursor-text": isEditing,
+                  "bg-transparent cursor-pointer": !isEditing,
                 }
               )}
               readOnly={!isEditing}
               onDoubleClick={handleDoubleClick}
               onBlur={handleBlur}
               onChange={
-                listType === 'folder' ? folderTitleChange : fileTitleChange
+                listType === "folder" ? folderTitleChange : fileTitleChange
               }
             />
           </div>
           <div className={hoverStyles}>
             <TooltipComponent message="Delete Folder">
-              <Trash
+              <Trash2
                 onClick={moveToTrash}
                 size={15}
-                className="hover:dark:text-white dark:text-Neutrals/neutrals-7 transition-colors"
+                className="hover:dark:text-white dark:text-neutral-7 transition-colors"
               />
             </TooltipComponent>
-            {listType === 'folder' && !isEditing && (
+            {listType === "folder" && !isEditing && (
               <TooltipComponent message="Add File">
                 <PlusIcon
-                  onClick={addNewFile}
+                  onClick={handleAddnewFile}
                   size={15}
-                  className="hover:dark:text-white dark:text-Neutrals/neutrals-7 transition-colors"
+                  className="hover:dark:text-white  dark:text-neutral-7 transition-colors"
                 />
               </TooltipComponent>
             )}
@@ -97,14 +318,12 @@ const Dropdown = ({title,id,listType,children,disabled,workSpaceId}:props) => {
                 title={file.title}
                 listType="file"
                 id={customFileId}
-                iconId={file.iconId} 
-                workSpaceId=''
+                iconId={file.iconId}
               />
             );
           })}
       </AccordionContent>
     </AccordionItem>
-  )
-}
-
-export default Dropdown
+  );
+};
+export default Dropdown;
