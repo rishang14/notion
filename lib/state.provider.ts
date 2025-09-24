@@ -70,7 +70,20 @@ export const useAppSotre = create<AppState>()(
         workspaces: allworkSpaces,
       }));
     },
-    //folders
+
+    updateWorkspace: (workspaceId, value) => {
+      set((state) => ({
+        workspaces: state.workspaces.map((w) =>
+          w.id === workspaceId
+            ? {
+                ...w,
+                ...value,
+              }
+            : w
+        ),
+      }));
+    },
+    //folders   
     addFolder: (workspaceId, folder) => {
       set((state) => ({
         workspaces: state.workspaces.map((w) =>

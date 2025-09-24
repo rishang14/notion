@@ -2,9 +2,8 @@
 import { Folder, Subscription, Workspace, User, File } from "@prisma/client";
 import prisma from "../prisma";
 import { validate } from "uuid";
-import { FolderCreateInputSchema } from "@/prisma/zod";
 import { error } from "console";
-import { date } from "zod";
+import { revalidatePath } from "next/cache";
 
 export const getUserSubscriptionStatus = async (userid: string) => {
   try {
@@ -42,6 +41,32 @@ export const createWorkSpace = async (values: any) => {
   }
 };
 
+export const updateWorkSpace = async (
+  values: Partial<Workspace>,
+  workspaceid: string
+) => {
+  if (!values) return { data: null, error: null };
+  try {
+    const updatedWorkspace = await prisma.workspace.update({
+      where: {
+        id: workspaceid,
+      },
+      data: {
+        ...values,
+      },
+    });
+
+    if (!updatedWorkspace) {
+      return { data: null, error: "Error" };
+    }
+    revalidatePath(`/dashboard/${workspaceid}`);
+    return { data: updatedWorkspace, error: null };
+  } catch (error) {
+    console.log("error while updating the workspace", error);
+    return { data: null, error: "Error" };
+  }
+};
+
 export const getFolders = async (wId: string) => {
   const valid = validate(wId);
   if (!valid) {
@@ -51,9 +76,9 @@ export const getFolders = async (wId: string) => {
     const folders = await prisma.folder.findMany({
       where: {
         workspaceId: wId,
-      }, 
-      include:{
-        files:true,
+      },
+      include: {
+        files: true,
       },
       orderBy: {
         createdAt: "asc",
@@ -153,6 +178,15 @@ export const addCollaborator = async (users: User[], workspaceId: string) => {
     skipDuplicates: true,
   });
 };
+
+// export const removeCollaborator = async (user: User, workspaceId: string) => {
+//   await prisma.collaborator.delete({
+//     where: {
+//       userId: user.id as string,
+//       workspaceId: workspaceId as string,
+//     },
+//   });
+// };
 
 export const getAllUsersFromSeacrh = async (email: string) => {
   if (!email) return [];

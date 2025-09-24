@@ -4,12 +4,9 @@ import Trashrestore from './trashrestore';
 
 type props=  {
   children: React.ReactNode; 
-  size:number, 
-  onClick:()=> void , 
-  className?:string,
 }
 
-const Trash = ({ children ,size,onClick,className}:props) => {
+const Trash = ({ children }:props) => {
   return (
     <CustomDialogTrigger
       header="Trash"

@@ -2,11 +2,11 @@ import React from "react";
 import Settingform from "./settingform";
 import CustomDialogTrigger from "../global/customdialogtrigger";
 
-interface SettingsProps {
+type props= {
   children: React.ReactNode;
 }
 
-const Settings: React.FC<SettingsProps> = ({ children }) => {
+const Settings = ({ children }:props) => {
   return (
     <CustomDialogTrigger header="Settings" content={<Settingform />}>
       {children}

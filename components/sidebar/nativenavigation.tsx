@@ -31,7 +31,7 @@ const Nativenavigation = ({workspaceid,className,getCurrentElement}:props) => {
           </Link>
         </li>
 
-        <Settings>
+        <Settings >
           <li
             className="group/native
             flex
@@ -46,7 +46,7 @@ const Nativenavigation = ({workspaceid,className,getCurrentElement}:props) => {
           </li>
         </Settings>
 
-        {/* <Trash>
+        <Trash>
           <li
             className="group/native
             flex
@@ -58,7 +58,7 @@ const Nativenavigation = ({workspaceid,className,getCurrentElement}:props) => {
             <Trash2Icon />
             <span>Trash</span>
           </li>
-        </Trash> */}
+        </Trash>
       </ul>
     </nav>
   )
