@@ -51,6 +51,9 @@ export const getFolders = async (wId: string) => {
     const folders = await prisma.folder.findMany({
       where: {
         workspaceId: wId,
+      }, 
+      include:{
+        files:true,
       },
       orderBy: {
         createdAt: "asc",
@@ -80,6 +83,30 @@ export const getPersonalWorkSpace = async (userid: string) => {
   });
 
   return privateWorkSpace;
+};
+
+export const getFiles = async (workspaceId: string, folderId: string) => {
+  try {
+    if (!workspaceId || !folderId) {
+      return { data: null, error: null };
+    }
+
+    const allfiles = await prisma.file.findMany({
+      where: {
+        folderId: folderId,
+        workspaceId: workspaceId,
+      },
+    });
+
+    if (!allfiles) {
+      return { data: [], error: null };
+    }
+
+    return { data: allfiles, error: null };
+  } catch (error) {
+    console.log("got error while retriving the file");
+    return { data: null, error: "Error" };
+  }
 };
 
 export const getCollboratorWorkspace = async (userid: string) => {

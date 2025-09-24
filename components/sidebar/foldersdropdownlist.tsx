@@ -1,19 +1,22 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 import { createFolder } from "@/lib/queries/db.queries";
-import { useAppSotre } from "@/lib/state.provider";
-import { toast } from "sonner"; 
-import { Accordion } from "../ui/accordion"; 
+import {
+  appFoldersType,
+  appWorkspacesType,
+  useAppSotre,
+} from "@/lib/state.provider";
+import { toast } from "sonner";
+import { Accordion } from "../ui/accordion";
 import TooltipComponent from "../global/tooltipprovider";
 import { Folder, Subscription } from "@prisma/client";
 import { PlusIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
-import path from "path";
 import Dropdown from "./dropdown";
 
 type props = {
   workspaceId: string;
-  workspaceFolders: Folder[];
+  workspaceFolders: appFoldersType[];
   subscriptionData: Subscription | null;
 };
 
@@ -22,27 +25,28 @@ const Foldersdropdownlist = ({
   workspaceFolders,
   subscriptionData,
 }: props) => {
-  const { setFolders, workspaces,addFolder,setPathName,folderId } = useAppSotre();
-  const [isOpen, setOpen] = useState<boolean>(false); 
-  const pathname= usePathname();  
+  const { setFolders, workspaces, addFolder, setPathName, folderId } =
+    useAppSotre();
+  const [isOpen, setOpen] = useState<boolean>(false);
+  const pathname = usePathname();
 
-
-  useEffect(()=>{
-  if(pathname){
-    setPathName(pathname);
-  }
-  },[pathname])
+  useEffect(() => {
+    if (pathname) {
+      setPathName(pathname);
+    }
+  }, [pathname]);
 
   const newFolders = useMemo(() => {
-    return workspaceFolders.map((folder) => ({
-      ...folder,
-      files:
-        workspaces
-          .find((workspace) => workspace.id === workspaceId)
-          ?.folders.find((f) => f.id === folder.id)?.files || [],
-    }));
-  }, [workspaceFolders, workspaceId, workspaces]);
-
+    return workspaceFolders.map((f) =>
+      f.id === folderId
+        ? {
+            ...f,
+            files: f?.files || [],
+          }
+        : f
+    );
+  }, [workspaceFolders, workspaceId]);
+  
   useEffect(() => {
     if (workspaceFolders.length > 0) {
       setFolders(workspaceId, newFolders);
@@ -57,27 +61,29 @@ const Foldersdropdownlist = ({
       return;
     }
 
-    const newFolders = { 
+    const newFolders = {
       title: "Untitled",
       iconId: "📄",
       workspaceId,
-    };  
+    };
 
-    const {data:createdFolder, error:folderError}= await createFolder(newFolders);  
-    if(folderError){
-        toast.error(folderError,{duration:3000}); 
-        return;
+    const { data: createdFolder, error: folderError } = await createFolder(
+      newFolders
+    );
+    if (folderError) {
+      toast.error(folderError, { duration: 3000 });
+      return;
     }
 
-    if(createdFolder){
-     addFolder(workspaceId,{...createdFolder,files:[]}); 
-     toast.success("Folder Created successfully")  
+    if (createdFolder) {
+      addFolder(workspaceId, { ...createdFolder, files: [] });
+      toast.success("Folder Created successfully");
     }
   };
 
-  return ( 
+  return (
     <>
-        <div
+      <div
         className="flex
         sticky 
         z-20 
@@ -113,7 +119,7 @@ const Foldersdropdownlist = ({
       </div>
       <Accordion
         type="multiple"
-        defaultValue={[folderId as string,""]}
+        defaultValue={[folderId as string, ""]}
         className="pb-20"
       >
         {folders
@@ -128,7 +134,7 @@ const Foldersdropdownlist = ({
             />
           ))}
       </Accordion>
-</>
+    </>
   );
 };
 

@@ -19,6 +19,7 @@ import {
 import { toast } from "sonner";
 import { Input } from "../ui/input";
 import { File } from "@prisma/client";
+import { useSession } from "next-auth/react";
 
 type props = {
   title: string;
@@ -49,13 +50,17 @@ const Dropdown = ({
   const router = useRouter();
   const isFolder = listType === "folder";
   const [isEditing, setIsEditing] = useState<boolean>(false);
-  const pathname = usePathname();
+  const pathname = usePathname(); 
+  const session= useSession();
 
   useEffect(() => {
     if (pathname) {
       setPathName(pathname);
     }
   }, [pathname]);
+
+  console.log(listType, "type");
+  console.log(workspaces, "workspaces");
 
   // get the title of folder
   const folderTitle: string | undefined = useMemo(() => {
@@ -158,11 +163,9 @@ const Dropdown = ({
   const handleBlur = async () => {
     if (!isEditing) return;
     setIsEditing(false);
-    const fid = id.split("folder one   with the split one ");
-    console.log(fid, "fid");
-    console.log(id, "id normal one ");
-    console.log(folderId, " folder id frim the zustand ");
-    if (fid?.length === 1) {
+    const fid = id.split("folder"); 
+    console.log(fid,"fid ")
+    if (fid?.length === 1 && listType === "folder") { 
       if (!folderTitle) return;
       const { data, error: folderError } = await updatefolder(
         { title: folderTitle },
@@ -174,13 +177,14 @@ const Dropdown = ({
       }
       toast.success("folder title updated", { duration: 3000 });
     }
-
-    if (fid?.length === 2 && fid[1]) {
+   console.log("i am inside the blur function ")
+    if (fid?.length === 2 && fid[1] && listType=== "file") {
       if (!fileTitle) {
         return;
-      }
+      } 
+      console.log("i am inside the file updation hey hey ")
       const { data, error: fileerror } = await updateFiles(
-        { title: folderTitle },
+        { title: fileTitle },
         fid[1]
       );
 
@@ -202,17 +206,19 @@ const Dropdown = ({
         updateFolder(workSpaceId, fid[0], { title: e.target.value });
       }
     }
-  };
+  }; 
+  console.log(workspaces,"spaces")
   // change the file tilte
   const fileTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!workSpaceId) return;
-    if (listType === "file") {
+    if (listType === "file"){
       const fid = id.split("folder");
       if (fid.length === 2 && fid[1]) {
         updateFile(workSpaceId, fid[0], fid[1], { title: e.target.value });
       }
     }
-  };
+  }; 
+  console.log(fileTitle,"current file ttile")
 
   // create a new file
   const handleAddnewFile = async () => {
@@ -238,7 +244,44 @@ const Dropdown = ({
     }
   };
 
-  const moveToTrash = () => {};
+  const moveToTrash = async() => {
+   const fid= id.split("folder"); 
+   if(!fid || !workSpaceId ) return; 
+ if(listType==="folder" ){
+  try {
+    const {data,error:folderError}= await updatefolder({inTrash:`folder is deleted by ${session.data?.user.email}`, 
+    },fid[0]);  
+
+    if(folderError){
+      toast.error("something went wrong while moving Folder to trash"); 
+      return
+    } 
+    toast.success("Folder moved to trash  Successfully");  
+    updateFolder(workSpaceId ,fid[0], {inTrash:`folder is deleted by ${session.data?.user.email}`}); 
+    return;
+  } catch (error) {
+    toast.error("something went wrong while moving Folder to trash");
+  }
+ }    
+
+ if(listType === "file"){
+  try {
+     const {data,error:fileerror} = await updateFiles({inTrash:` file is deleted by ${session.data?.user.email}`},fid[1]);  
+
+     if(fileerror){
+      toast.error("something went wrong while moving file to trash ") 
+      return; 
+     } 
+
+     toast.success("file is Moved to trash successfully "); 
+     updateFile(workSpaceId,fid[0],fid[1],{inTrash:` file is deleted by ${session.data?.user.email}`});
+  } catch (error) {
+    toast.error("something went wrong while moving file to trash")
+  }
+ }
+
+
+  };
   return (
     <AccordionItem
       value={id}

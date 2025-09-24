@@ -127,6 +127,30 @@ export const useAppSotre = create<AppState>()(
 
     // files
 
+    setFiles: (workspaceId, folderId, newfiles) => {
+      set((state) => ({
+        workspaces: state.workspaces.map((w) =>
+          w.id === workspaceId
+            ? {
+                ...w,
+                folders: w.folders.map((f) =>
+                  f.id === folderId
+                    ? {
+                        ...f,
+                        files: newfiles.sort(
+                          (a, b) =>
+                            new Date(a.createdAt).getTime() -
+                            new Date(b.createdAt).getTime()
+                        ),
+                      }
+                    : f
+                ),
+              }
+            : w
+        ),
+      }));
+    },
+
     addFile: (workSpaceId, folderId, newFile) => {
       set((state) => ({
         workspaces: state.workspaces.map((w) =>
