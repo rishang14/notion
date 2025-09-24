@@ -2,7 +2,7 @@
 import { Folder, Subscription, Workspace, User, File } from "@prisma/client";
 import prisma from "../prisma";
 import { validate } from "uuid";
-import { error } from "console";
+
 import { revalidatePath } from "next/cache";
 
 export const getUserSubscriptionStatus = async (userid: string) => {
@@ -179,14 +179,16 @@ export const addCollaborator = async (users: User[], workspaceId: string) => {
   });
 };
 
-// export const removeCollaborator = async (user: User, workspaceId: string) => {
-//   await prisma.collaborator.delete({
-//     where: {
-//       userId: user.id as string,
-//       workspaceId: workspaceId as string,
-//     },
-//   });
-// };
+export const removeCollaborator = async (user: User, workspaceId: string) => {
+  await prisma.collaborator.delete({
+    where: {
+      userId_workspaceId: {
+        userId: user.id,
+        workspaceId,
+      },
+    },
+  });
+};
 
 export const getAllUsersFromSeacrh = async (email: string) => {
   if (!email) return [];

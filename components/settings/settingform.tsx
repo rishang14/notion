@@ -131,20 +131,6 @@ const Settingform = () => {
           placeholder="Workspace Name"
           onChange={workspaceNameChange}
         />
-        <Label
-          htmlFor="workspaceLogo"
-          className="text-sm text-muted-foreground"
-        >
-          Workspace Logo
-        </Label>
-        <Input
-          name="workspaceLogo"
-          type="file"
-          accept="image/*"
-          placeholder="Workspace Logo"
-          // onChange={onChangeWorkspaceLogo}
-          // disabled={uploadingLogo || subscription?.status !== "active"}
-        />
         {subscription?.status !== "active" && (
           <small className="text-muted-foreground">
             To customize your workspace, you need to be on a Pro Plan

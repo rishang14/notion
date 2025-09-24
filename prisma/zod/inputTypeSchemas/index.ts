@@ -209,6 +209,7 @@ export { SubscriptionMaxOrderByAggregateInputSchema } from './SubscriptionMaxOrd
 export { SubscriptionMinOrderByAggregateInputSchema } from './SubscriptionMinOrderByAggregateInputSchema';
 export { SubscriptionSumOrderByAggregateInputSchema } from './SubscriptionSumOrderByAggregateInputSchema';
 export { Enumsubscription_statusNullableWithAggregatesFilterSchema } from './Enumsubscription_statusNullableWithAggregatesFilterSchema';
+export { CollaboratorUserIdWorkspaceIdCompoundUniqueInputSchema } from './CollaboratorUserIdWorkspaceIdCompoundUniqueInputSchema';
 export { CollaboratorCountOrderByAggregateInputSchema } from './CollaboratorCountOrderByAggregateInputSchema';
 export { CollaboratorMaxOrderByAggregateInputSchema } from './CollaboratorMaxOrderByAggregateInputSchema';
 export { CollaboratorMinOrderByAggregateInputSchema } from './CollaboratorMinOrderByAggregateInputSchema';
