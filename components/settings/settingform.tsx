@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import {
   addCollaborator,
   updateWorkSpace as updateworkspace,
+  removeCollaborator,
+  deleteWorksapce,
+  getcollaborator,
 } from "@/lib/queries/db.queries";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
@@ -14,7 +17,7 @@ import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { ScrollArea } from "../ui/scroll-area";
 import Collaboratorssearch from "../global/collaboratorssearch";
-import { Alert, AlertDescription,AlertTitle } from "../ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import {
   Select,
   SelectTrigger,
@@ -45,22 +48,20 @@ import {
 import { Subscription, User, Workspace } from "@prisma/client";
 import { useAppSotre } from "@/lib/state.provider";
 import { getUserSubscriptionStatus } from "@/lib/queries/db.queries";
+import { toast } from "sonner";
 
 const Settingform = () => {
   const [open, setOpen] = useState<boolean>(false);
   const [openAlertMessage, setOpenAlertMessage] = useState<boolean>(false);
-  const [uploadingProfilePic, setUploadingProfilePic] = useState(false);
   const titleTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
-  const [uploadingLogo, setUploadingLogo] = useState<boolean>(false);
-  const [loadingPortal, setLoadingPortal] = useState<boolean>(false);
   const [permissions, setpermissions] = useState<string>("private");
+  const [loadingPortal, setloadingPortal] = useState<boolean>(false);
   const [collaborators, setcollaborators] = useState<User[] | []>([]);
   const [workspaceDetails, setworkspaceDetails] = useState<Workspace>();
   const { workSpaceId, workspaces, updateWorkspace } = useAppSotre();
   const [subscription, setSubscription] = useState<Subscription | null>();
   const { data } = useSession();
   const router = useRouter();
-  console.log(data, "user");
 
   useEffect(() => {
     if (!workspaces) return;
@@ -75,6 +76,23 @@ const Settingform = () => {
       if (titleTimerRef.current) clearTimeout(titleTimerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (!workSpaceId) return;
+    const getworkspaceCollaborator = async () => {
+      const { data, error } = await getcollaborator(workSpaceId);
+      if (error) {
+        return;
+      }
+
+      if (data && data?.length > 0) {
+        setpermissions("shared");
+        setcollaborators(data);
+      }
+    };
+
+    getworkspaceCollaborator();
+  }, [workSpaceId]);
 
   const workspaceNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!workSpaceId || !e.target.value) return;
@@ -110,7 +128,36 @@ const Settingform = () => {
     await addCollaborator([user], workSpaceId);
     setcollaborators((prev) => [...prev, user]);
   };
-  console.log(collaborators, "collaborators");
+
+  const handleRemoveCollaborator = async (user: User) => {
+    if (!workSpaceId) return;
+    if (collaborators.length === 1) {
+      setpermissions("private");
+    }
+    try {
+      const remvoedCollaborator = await removeCollaborator([user], workSpaceId);
+
+      if (remvoedCollaborator) {
+        setcollaborators((prev) => prev.filter((i) => i.id !== user.id));
+      }
+      toast.success("collaborator is removed ", { duration: 3000 });
+    } catch (error) {
+      toast.error("something went wrong while removing the collaborator");
+    }
+  };
+  const onClickAlertConfirm = async () => {
+    if (!workSpaceId) return;
+    if (collaborators.length > 0) {
+      await removeCollaborator(collaborators, workSpaceId);
+    }
+    setpermissions("private");
+    setOpenAlertMessage(false);
+  };
+  const onPermissionsChange = (val: string) => {
+    if (val === "private") {
+      setOpenAlertMessage(true);
+    } else setpermissions(val);
+  };
   return (
     <div className="flex gap-4 flex-col">
       <p className="flex items-center gap-2 mt-6">
@@ -139,10 +186,7 @@ const Settingform = () => {
       </div>
       <>
         <Label htmlFor="permissions">Permissions</Label>
-        <Select
-          //  onValueChange={onPermissionsChange}
-          value={permissions}
-        >
+        <Select onValueChange={onPermissionsChange} value={permissions}>
           <SelectTrigger className="w-full h-26 -mt-3">
             <SelectValue />
           </SelectTrigger>
@@ -235,7 +279,7 @@ const Settingform = () => {
                       </div>
                       <Button
                         variant="secondary"
-                        // onClick={() => removeCollaborator(c)}
+                        onClick={() => handleRemoveCollaborator(c)}
                       >
                         Remove
                       </Button>
@@ -265,24 +309,25 @@ const Settingform = () => {
           <AlertTitle>
             Warning! deleting you workspace will permanantly delete all data
             related to this workspace.
-          </AlertTitle> 
+          </AlertTitle>
           <AlertDescription>
-          <Button
-            type="submit"
-            variant={"destructive"}
-            className="mt-4 
+            <Button
+              type="submit"
+              variant={"destructive"}
+              className="mt-4 
             text-sm
             bg-destructive/40 
             border-2 
             border-destructive"
-            // onClick={async () => {
-            //   if (!workSpaceId) return;
-            //   await deleteWorkspace(workSpaceId);
-            //   router.replace("/dashboard");
-            // }}
-          >
-            Delete Workspace
-          </Button>
+              onClick={async () => {
+                if (!workSpaceId) return;
+                await deleteWorksapce(workSpaceId);
+                toast.success("workspace deleted successfully");
+                router.replace("/dashboard");
+              }}
+            >
+              Delete Workspace
+            </Button>
           </AlertDescription>
         </Alert>
         <p className="flex items-center gap-2 mt-6">
@@ -298,20 +343,6 @@ const Settingform = () => {
             <small className="text-muted-foreground cursor-not-allowed">
               {data?.user ? data?.user.email : ""}
             </small>
-            <Label
-              htmlFor="profilePicture"
-              className="text-sm text-muted-foreground"
-            >
-              Profile Picture
-            </Label>
-            <Input
-              name="profilePicture"
-              type="file"
-              accept="image/*"
-              placeholder="Profile Picture"
-              // onChange={onChangeProfilePicture}
-              disabled={uploadingProfilePic}
-            />
           </div>
         </div>
         {/* <LogoutButton>
@@ -374,9 +405,7 @@ const Settingform = () => {
             <AlertDialogCancel onClick={() => setOpenAlertMessage(false)}>
               Cancel
             </AlertDialogCancel>
-            <AlertDialogAction
-            //  onClick={onClickAlertConfirm}
-            >
+            <AlertDialogAction onClick={onClickAlertConfirm}>
               Continue
             </AlertDialogAction>
           </AlertDialogFooter>

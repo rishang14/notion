@@ -2,8 +2,8 @@
 import { Folder, Subscription, Workspace, User, File } from "@prisma/client";
 import prisma from "../prisma";
 import { validate } from "uuid";
-
 import { revalidatePath } from "next/cache";
+import { error } from "console";
 
 export const getUserSubscriptionStatus = async (userid: string) => {
   try {
@@ -169,6 +169,27 @@ export const getsharedWorksace = async (userid: string) => {
   return sharedWorksace;
 };
 
+export const getcollaborator = async (workspaceId: string) => {
+  try {
+    const collaboratorUsesr = await prisma.user.findMany({
+      where: {
+        collaborators: {
+          some: {
+            workspaceId,
+          },
+        },
+      },
+    });
+    if (!collaboratorUsesr) {
+      return { data: [], error: null };
+    }
+    return { data: collaboratorUsesr , error: null };
+  } catch (error) {
+    console.log("error while getting the collaborator", error);
+    return { data: null, error: "error" };
+  }
+};
+
 export const addCollaborator = async (users: User[], workspaceId: string) => {
   await prisma.collaborator.createMany({
     data: users.map((user) => ({
@@ -179,15 +200,23 @@ export const addCollaborator = async (users: User[], workspaceId: string) => {
   });
 };
 
-export const removeCollaborator = async (user: User, workspaceId: string) => {
-  await prisma.collaborator.delete({
+export const removeCollaborator = async (user: User[], workspaceId: string) => {
+  if (!user.length) return;
+  const userids = user.map((u) => u.id);
+  return await prisma.collaborator.deleteMany({
     where: {
-      userId_workspaceId: {
-        userId: user.id,
-        workspaceId,
-      },
+      userId: { in: userids },
+      workspaceId: workspaceId,
     },
   });
+};
+
+export const deleteWorksapce = async (id: string) => {
+  try {
+    const deleteWorksapce = await prisma.workspace.delete({
+      where: { id },
+    });
+  } catch (error) {}
 };
 
 export const getAllUsersFromSeacrh = async (email: string) => {
