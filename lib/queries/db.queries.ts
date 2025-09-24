@@ -151,6 +151,24 @@ export const getCollboratorWorkspace = async (userid: string) => {
   return collaboratorworkspace;
 };
 
+export const getworkspaceDetails = async (workspaceId: string) => {
+  if (!workspaceId) return { data: null, error: null };
+  try {
+    const detail = await prisma.workspace.findFirst({
+      where: { id: workspaceId },
+    });
+
+    if (!detail) {
+      return { data: null, error: "Error" };
+    }
+
+    return { data: detail, error: null };
+  } catch (error) {
+    console.log("error while getting the workspae details", error);
+    return { data: null, error: "Error" };
+  }
+};
+
 export const getsharedWorksace = async (userid: string) => {
   if (!userid) return [];
 
@@ -183,7 +201,7 @@ export const getcollaborator = async (workspaceId: string) => {
     if (!collaboratorUsesr) {
       return { data: [], error: null };
     }
-    return { data: collaboratorUsesr , error: null };
+    return { data: collaboratorUsesr, error: null };
   } catch (error) {
     console.log("error while getting the collaborator", error);
     return { data: null, error: "error" };
