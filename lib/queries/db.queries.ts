@@ -3,8 +3,6 @@ import { Folder, Subscription, Workspace, User, File } from "@prisma/client";
 import prisma from "../prisma";
 import { validate } from "uuid";
 import { revalidatePath } from "next/cache";
-import { da } from "zod/v4/locales";
-import { error } from "console";
 
 export const getUserSubscriptionStatus = async (userid: string) => {
   try {
@@ -343,13 +341,13 @@ export const createFile = async (values: Partial<File>) => {
   }
 };
 
-export const deleteFolder = (folderid: string) => {
+export const deleteFolder = async(folderid: string) => {
   return prisma.folder.delete({
     where: { id: folderid },
   });
 };
 
-export const deleteFile = (fileid: string) => {
+export const deleteFile = async(fileid: string) => {
   return prisma.file.delete({
     where: { id: fileid },
   });

@@ -1,17 +1,26 @@
 "use client";
 import React, { useCallback, useMemo, useState } from "react";
-import { Folder, File, Workspace } from "@prisma/client";
-import type QuillType from "quill";
-import "quill/dist/quill.snow.css";
-import { useAppSotre } from "@/lib/state.provider";
-import { Button } from "../ui/button";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
 import {
   deleteFile,
   deleteFolder,
   updateFiles,
   updateFolder as updatefolder,
+  updateWorkSpace as updatewrkspace,
 } from "@/lib/queries/db.queries";
+import { useAppSotre } from "@/lib/state.provider";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
+import { Tooltip, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
+import EmojiPicker from "../global/emojiPicker";
 import { toast } from "sonner";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import BannerImg from "@/public/BannerImage.png";
+import type QuillType from "quill";
+import "quill/dist/quill.snow.css";
+import { Folder, File, Workspace, User } from "@prisma/client";
+import { XCircleIcon } from "lucide-react";
 
 type props = {
   dirType: "workspace" | "folder" | "file";
@@ -40,6 +49,8 @@ const toolbarOptions = [
 ];
 const Texteditor = ({ dirType, fileId, data }: props) => {
   const [quill, setQuill] = useState<QuillType | null>();
+  const [collaborator, setcollaborator] = useState<Partial<User[]> | []>([]);
+  const [saving, setsaving] = useState<boolean>(false);
   const {
     workSpaceId,
     workspaces,
@@ -48,7 +59,10 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
     updateFolder,
     removeFile,
     removeFolder,
+    updateWorkspace,
   } = useAppSotre();
+  const pathname = usePathname();
+
   const wrapperref = useCallback((wrapper: HTMLDivElement | null) => {
     if (typeof window === undefined || wrapper === null) return;
     (async () => {
@@ -147,6 +161,83 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
     }
   };
 
+  const breadCrumbs = useMemo(() => {
+    if (!workSpaceId || !fileId || !pathname) return;
+
+    const segements = pathname
+      .split("/")
+      .filter((val) => val !== "dashboard" && val);
+
+    const wid = segements[0];
+    const workspacesegments = workspaces.find((w) => w.id === wid);
+    const workspaceBreadCrumb = workspacesegments
+      ? `${workspacesegments.iconId} ${workspacesegments.title}`
+      : "";
+
+    if (segements.length === 1) {
+      return workspaceBreadCrumb;
+    }
+    const fid = segements[1];
+    const folderssegment = workspacesegments?.folders.find((f) => f.id === fid);
+    const folderBreadCrumb = folderssegment
+      ? ` / ${folderssegment.iconId}   ${folderssegment.title}`
+      : " ";
+    if (segements.length === 2) {
+      return `${workspaceBreadCrumb} ${folderBreadCrumb}`;
+    }
+
+    const fileid = segements[2];
+    const fileSegment = folderssegment?.files.find((f) => f.id === fileid);
+    const filebreadcramp = fileSegment
+      ? ` / ${fileSegment.iconId} ${fileSegment.title}  `
+      : " ";
+
+    return ` ${workspaceBreadCrumb} ${folderBreadCrumb} ${filebreadcramp}`;
+  }, [workspaces, workSpaceId, fileId]);
+
+  const iconOnChange = async (icon: string) => {
+    if (!icon) return;
+    if (dirType === "workspace") {
+      console.log("inside workspace");
+      if (!fileId) return;
+      const { data, error } = await updatewrkspace({ iconId: icon }, fileId);
+
+      if (error) {
+        toast.error("something went wrong while updating the iconId", {
+          duration: 3000,
+        });
+        return;
+      }
+      updateWorkspace(fileId, { iconId: icon });
+      return;
+    }
+
+    if (dirType === "folder") {
+      if (!workSpaceId || !fileId) return;
+      console.log("i got inside the folder ");
+      const { data, error } = await updatefolder({ iconId: icon }, fileId);
+
+      if (error) {
+        toast.error("something went wrong while updatinng the iconId");
+        return;
+      }
+      updateFolder(workSpaceId, fileId, { iconId: icon });
+      return;
+    }
+
+    if (dirType === "file") {
+      if (!fileId || !folderId || !workSpaceId) return;
+      console.log("hey i am inside the file one ");
+      const { data, error } = await updateFiles({ iconId: icon }, fileId);
+
+      if (error) {
+        toast.error("something went wrong while updatinng the iconId");
+        return;
+      }
+      updateFile(workSpaceId, folderId, fileId, { iconId: icon });
+    }
+  };
+
   return (
     <>
       <div className="relative">
@@ -205,6 +296,170 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
             <span className="text-sm text-white">{details.inTrash}</span>
           </article>
         )}
+        <div
+          className="flex 
+        flex-col-reverse 
+        sm:flex-row 
+        sm:justify-between 
+        justify-center 
+        sm:items-center 
+        sm:p-2 
+        p-8"
+        >
+          <div>{breadCrumbs}</div>
+          <div className="flex items-center justify-center gap-4 ">
+            <div className="flex items-center justify-center h-10">
+              {collaborator &&
+                collaborator.map((c) => (
+                  <TooltipProvider key={c?.id}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Avatar
+                          className="
+                    -ml-3 
+                    bg-background 
+                    border-2 
+                    flex 
+                    items-center 
+                    justify-center 
+                    border-white 
+                    h-8 
+                    w-8 
+                    rounded-full"
+                        >
+                          <AvatarImage src={c?.image ? c.image : " "} />
+                          <AvatarFallback>{c?.name?.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                      </TooltipTrigger>
+                    </Tooltip>
+                  </TooltipProvider>
+                ))}
+            </div>
+            {saving ? (
+              <Badge
+                variant="secondary"
+                className="bg-orange-600 top-4
+                text-white
+                right-4
+                z-50
+                "
+              >
+                Saving...
+              </Badge>
+            ) : (
+              <Badge
+                variant="secondary"
+                className="bg-emerald-600 
+                top-4
+              text-white
+              right-4
+              z-50
+              "
+              >
+                Saved
+              </Badge>
+            )}
+          </div>
+        </div>
+      </div>
+      {details?.bannerUrl && (
+        <div className="w-full relative h-[200px]">
+          <Image
+            src={details.bannerUrl}
+            alt="bannerurl"
+            fill
+            className="w-full md:h-48
+            h-20
+            object-cover"
+          />
+        </div>
+      )}
+      <div
+        className="flex 
+        justify-center
+        items-center
+        flex-col
+        mt-2
+        relative
+      "
+      >
+        <div
+          className="w-full 
+        self-center 
+        max-w-[800px] 
+        flex 
+        flex-col
+         px-7 
+         lg:my-8"
+        >
+          <div className="text-[80px]">
+            <EmojiPicker getvalues={iconOnChange}>
+              <div
+                className="w-[100px]
+                cursor-pointer
+                transition-colors
+                h-[100px]
+                flex
+                items-center
+                justify-center
+                hover:bg-muted
+                rounded-xl"
+              >
+                {details.iconId}
+              </div>
+            </EmojiPicker>
+          </div>
+          <div className="flex ">
+            {/* <BannerUpload
+              id={fileId}
+              dirType={dirType}
+              className="mt-2
+              text-sm
+              text-muted-foreground
+              p-2
+              hover:text-card-foreground
+              transition-all
+              rounded-md"
+            >
+              {details.bannerUrl ? "Update Banner" : "Add Banner"}
+            </BannerUpload> */}
+            {details.bannerUrl && (
+              <Button
+                // disabled={deletingBanner}
+                // onClick={deleteBanner}
+                variant="ghost"
+                className="gap-2 hover:bg-background
+                flex
+                item-center
+                justify-center
+                mt-2
+                text-sm
+                text-muted-foreground
+                w-36
+                p-2
+                rounded-md"
+              >
+                <XCircleIcon size={16} />
+                <span className="whitespace-nowrap font-normal">
+                  Remove Banner
+                </span>
+              </Button>
+            )}
+          </div>
+          <span
+            className="
+            text-muted-foreground
+            text-3xl
+            font-bold
+            h-9
+          "
+          >
+            {details.title}
+          </span>
+          <span className="text-muted-foreground text-sm">
+            {dirType.toUpperCase()}
+          </span>
+        </div>
       </div>
       <div className="flex w-full items-center flex-col justify-center mt-10">
         <div id="container" className="max-w-[800px]" ref={wrapperref}></div>
