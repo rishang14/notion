@@ -3,6 +3,7 @@ import { Folder, Subscription, Workspace, User, File } from "@prisma/client";
 import prisma from "../prisma";
 import { validate } from "uuid";
 import { revalidatePath } from "next/cache";
+import { da } from "zod/v4/locales";
 import { error } from "console";
 
 export const getUserSubscriptionStatus = async (userid: string) => {
@@ -153,6 +154,10 @@ export const getCollboratorWorkspace = async (userid: string) => {
 
 export const getworkspaceDetails = async (workspaceId: string) => {
   if (!workspaceId) return { data: null, error: null };
+  const valid = validate(workspaceId);
+  if (!valid) {
+    return { data: null, error: "error" };
+  }
   try {
     const detail = await prisma.workspace.findFirst({
       where: { id: workspaceId },
@@ -335,5 +340,65 @@ export const createFile = async (values: Partial<File>) => {
   } catch (error) {
     console.log("error while creating file ", error);
     return { data: null, error: "Error" };
+  }
+};
+
+export const deleteFolder = (folderid: string) => {
+  return prisma.folder.delete({
+    where: { id: folderid },
+  });
+};
+
+export const deleteFile = (fileid: string) => {
+  return prisma.file.delete({
+    where: { id: fileid },
+  });
+};
+
+export const getFileDetails = async (fileId: string) => {
+  if (!fileId) return { data: null, error: null };
+  const valid = validate(fileId);
+  if (!valid) {
+    return { data: null, error: "Error" };
+  }
+  try {
+    const fileDetails = await prisma.file.findFirst({
+      where: {
+        id: fileId,
+      },
+    });
+
+    if (!fileDetails) {
+      return { data: null, error: "Error" };
+    }
+
+    return { data: fileDetails, error: null };
+  } catch (error) {
+    console.log("error while getting the data from the file", error);
+    return { data: null, error: "error" };
+  }
+};
+
+export const getFoldereDetails = async (folderid: string) => {
+  if (!folderid) return { data: null, error: null };
+  const valid = validate(folderid);
+  if (!valid) {
+    return { data: null, error: "Error" };
+  }
+  try {
+    const folderDetails = await prisma.folder.findFirst({
+      where: {
+        id: folderid,
+      },
+    });
+
+    if (!folderDetails) {
+      return { data: null, error: "Error" };
+    }
+
+    return { data: folderDetails, error: null };
+  } catch (error) {
+    console.log("error while getting the data from the file", error);
+    return { data: null, error: "error" };
   }
 };

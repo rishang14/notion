@@ -2,12 +2,13 @@ import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { File } from "@/prisma/zod";
 import { Folder, Workspace } from "@prisma/client";
+import { file } from "zod";
 
 export type appFoldersType = Folder & { files: File[] | [] };
 export type appWorkspacesType = Workspace & {
   folders: appFoldersType[] | [];
 };
-interface AppState {
+type AppState = {
   workspaces: appWorkspacesType[];
   workSpaceId: string | null;
   folderId: string | null;
@@ -29,7 +30,7 @@ interface AppState {
     folderId: string,
     partial: Partial<appFoldersType>
   ) => void;
-  deleteFolder: (workspaceId: string, folderId: string) => void;
+  removeFolder: (workspaceId: string, folderId: string) => void;
 
   // file actions
   setFiles: (workspaceId: string, folderId: string, files: File[]) => void;
@@ -40,8 +41,8 @@ interface AppState {
     fileId: string,
     partial: Partial<File>
   ) => void;
-  deleteFile: (workspaceId: string, folderId: string, fileId: string) => void;
-}
+  removeFile: (workspaceId: string, folderId: string, fileId: string) => void;
+};
 
 export const useAppSotre = create<AppState>()(
   devtools((set) => ({
@@ -83,7 +84,7 @@ export const useAppSotre = create<AppState>()(
         ),
       }));
     },
-    //folders   
+    //folders
     addFolder: (workspaceId, folder) => {
       set((state) => ({
         workspaces: state.workspaces.map((w) =>
@@ -132,6 +133,18 @@ export const useAppSotre = create<AppState>()(
                       }
                     : f
                 ),
+              }
+            : w
+        ),
+      }));
+    },
+    removeFolder: (workSpaceId, folderId) => {
+      set((state) => ({
+        workspaces: state.workspaces.map((w) =>
+          w.id === workSpaceId
+            ? {
+                ...w,
+                folders: w.folders.filter((f) => f.id !== folderId),
               }
             : w
         ),
@@ -205,6 +218,26 @@ export const useAppSotre = create<AppState>()(
                               }
                             : fil
                         ),
+                      }
+                    : f
+                ),
+              }
+            : w
+        ),
+      }));
+    },
+
+    removeFile: (workSpaceId, folderId, fileid) => {
+      set((state) => ({
+        workspaces: state.workspaces.map((w) =>
+          w.id === workSpaceId
+            ? {
+                ...w,
+                folders: w.folders.map((f) =>
+                  f.id == folderId
+                    ? {
+                        ...f,
+                        files: f.files.filter((files) => files.id !== fileid),
                       }
                     : f
                 ),

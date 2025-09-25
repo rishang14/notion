@@ -5,6 +5,13 @@ import type QuillType from "quill";
 import "quill/dist/quill.snow.css";
 import { useAppSotre } from "@/lib/state.provider";
 import { Button } from "../ui/button";
+import {
+  deleteFile,
+  deleteFolder,
+  updateFiles,
+  updateFolder as updatefolder,
+} from "@/lib/queries/db.queries";
+import { toast } from "sonner";
 
 type props = {
   dirType: "workspace" | "folder" | "file";
@@ -33,7 +40,15 @@ const toolbarOptions = [
 ];
 const Texteditor = ({ dirType, fileId, data }: props) => {
   const [quill, setQuill] = useState<QuillType | null>();
-  const { workSpaceId, workspaces, folderId } = useAppSotre();
+  const {
+    workSpaceId,
+    workspaces,
+    folderId,
+    updateFile,
+    updateFolder,
+    removeFile,
+    removeFolder,
+  } = useAppSotre();
   const wrapperref = useCallback((wrapper: HTMLDivElement | null) => {
     if (typeof window === undefined || wrapper === null) return;
     (async () => {
@@ -82,15 +97,55 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
       inTrash: data.inTrash,
       bannerUrl: data.bannerUrl,
     } as Workspace | Folder | File;
-  }, [workSpaceId, workspaces, fileId]);   
+  }, [workSpaceId, workspaces, fileId]);
 
-  const restoreHandler=()=>{
+  const restoreHandler = async () => {
+    if (dirType === "folder") {
+      if (!workSpaceId || !fileId) return;
+      const { data, error } = await updatefolder({ inTrash: null }, fileId);
 
-  } 
+      if (error) {
+        toast.error("something went wrong while resotrig folder");
+        return;
+      }
 
-  const deleteHandler=()=>{
+      toast.success("folder restored successfully");
+      updateFolder(workSpaceId, fileId, { inTrash: null });
+      return;
+    }
 
-  }
+    if (dirType === "file") {
+      if (!workSpaceId || !fileId || !folderId) return;
+      const { data, error } = await updateFiles({ inTrash: null }, fileId);
+
+      if (error) {
+        toast.error("something went wrong while resotrig file");
+        return;
+      }
+
+      toast.success("folder restored successfully");
+      updateFile(workSpaceId, folderId, fileId, { inTrash: null });
+      return;
+    }
+  };
+
+  const deleteHandler = async () => {
+    if (dirType === "file") {
+      if (!fileId || !workSpaceId || !folderId) return;
+      const deleted = await deleteFile(fileId);
+      if (deleted) {
+        removeFile(workSpaceId, folderId, fileId);
+      }
+    }
+
+    if (dirType === "folder") {
+      if (!fileId || !workSpaceId) return;
+      const deletedFolder = await deleteFolder(fileId);
+      if (deletedFolder) {
+        removeFolder(workSpaceId, fileId);
+      }
+    }
+  };
 
   return (
     <>

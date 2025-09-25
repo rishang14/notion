@@ -18,12 +18,10 @@ const WorkSpace = async ({
   const { workspaceId } = await params;
 
   const { data, error } = await getworkspaceDetails(workspaceId);
-  if (error) {
+  if (error || !data) {
     redirect("/dashboard");
   } 
 
-  if(!data) return;
-  console.log(data, "data");
 
   return (
     <div className="relative">
