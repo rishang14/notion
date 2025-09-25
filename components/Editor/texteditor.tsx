@@ -16,7 +16,8 @@ import { Tooltip, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import EmojiPicker from "../global/emojiPicker";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import BannerImg from "@/public/BannerImage.png";
+import BannerImg from "@/public/BannerImage.png"; 
+import BannerUpload from "../banneruploadbutton/bannerupload";
 import type QuillType from "quill";
 import "quill/dist/quill.snow.css";
 import { Folder, File, Workspace, User } from "@prisma/client";
@@ -410,7 +411,7 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
             </EmojiPicker>
           </div>
           <div className="flex ">
-            {/* <BannerUpload
+            <BannerUpload
               id={fileId}
               dirType={dirType}
               className="mt-2
@@ -422,7 +423,7 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
               rounded-md"
             >
               {details.bannerUrl ? "Update Banner" : "Add Banner"}
-            </BannerUpload> */}
+            </BannerUpload>
             {details.bannerUrl && (
               <Button
                 // disabled={deletingBanner}

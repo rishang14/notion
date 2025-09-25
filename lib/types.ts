@@ -12,4 +12,11 @@ export const CreateWorkspaceFormSchema = z.object({
     .describe('Workspace Name')
     .min(1, 'Workspace name must be min of 1 character'),
   logo: z.any(),
+});   
+
+export const UploadBannerFormSchema = z.object({
+  banner: z
+    .custom<File>((val) => val instanceof File, {
+      message: "Banner Image is required",
+    }),
 });
