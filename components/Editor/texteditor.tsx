@@ -16,12 +16,14 @@ import { Tooltip, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import EmojiPicker from "../global/emojiPicker";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import BannerImg from "@/public/BannerImage.png"; 
+import BannerImg from "@/public/BannerImage.png";
 import BannerUpload from "../banneruploadbutton/bannerupload";
 import type QuillType from "quill";
 import "quill/dist/quill.snow.css";
 import { Folder, File, Workspace, User } from "@prisma/client";
-import { XCircleIcon } from "lucide-react";
+import { ReceiptEuro, XCircleIcon } from "lucide-react";
+import { handleImgDelete } from "@/lib/uploadImg";
+import { de } from "zod/v4/locales";
 
 type props = {
   dirType: "workspace" | "folder" | "file";
@@ -51,6 +53,7 @@ const toolbarOptions = [
 const Texteditor = ({ dirType, fileId, data }: props) => {
   const [quill, setQuill] = useState<QuillType | null>();
   const [collaborator, setcollaborator] = useState<Partial<User[]> | []>([]);
+  const [deletingBanner, setDeletingBanner] = useState<boolean>(false);
   const [saving, setsaving] = useState<boolean>(false);
   const {
     workSpaceId,
@@ -236,6 +239,72 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
         return;
       }
       updateFile(workSpaceId, folderId, fileId, { iconId: icon });
+    }
+  };
+
+  console.log(
+    details.bannerUrl?.split(`/object/public/${"bannerurl"}/`)[1],
+    "url"
+  );
+
+  const deleteBanner = async () => {
+    if (!details.bannerUrl) return;
+    try {
+      setDeletingBanner(true);
+      const url = details.bannerUrl?.split("/object/public/bannerurl/")[1];
+      const deletedbannerUrl = await handleImgDelete("bannerurl", url);
+
+      if (!deletedbannerUrl) {
+        toast.error("somethig went wrong while deleting the banner url", {
+          duration: 3000,
+        });
+        return;
+      }
+
+      if (dirType === "workspace") {
+        console.log("inside workspace");
+        if (!fileId) return;
+        const { data, error } = await updatewrkspace({ bannerUrl: "" }, fileId);
+
+        if (error) {
+          toast.error("something went wrong while updating the iconId", {
+            duration: 3000,
+          });
+          return;
+        }
+        updateWorkspace(fileId, { bannerUrl: "" });
+        return;
+      }
+
+      if (dirType === "folder") {
+        if (!workSpaceId || !fileId) return;
+        const { data, error } = await updatefolder({ bannerUrl: "" }, fileId);
+
+        if (error) {
+          toast.error("something went wrong while deleting  the banner");
+          return;
+        }
+        updateFolder(workSpaceId, fileId, { bannerUrl: "" });
+        return;
+      }
+
+      if (dirType === "file") {
+        if (!fileId || !folderId || !workSpaceId) return;
+        console.log("hey i am inside the file one ");
+        const { data, error } = await updateFiles({ bannerUrl: "" }, fileId);
+
+        if (error) {
+          toast.error("something went wrong while deleting  the banner");
+          return;
+        }
+        updateFile(workSpaceId, folderId, fileId, { bannerUrl: "" });
+      }
+      setDeletingBanner(false);
+    } catch (error) {
+      toast.error("something  wnet wrong while removing the banner ", {
+        duration: 3000,
+      });
+      setDeletingBanner(false);
     }
   };
 
@@ -426,8 +495,8 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
             </BannerUpload>
             {details.bannerUrl && (
               <Button
-                // disabled={deletingBanner}
-                // onClick={deleteBanner}
+                disabled={deletingBanner}
+                onClick={deleteBanner}
                 variant="ghost"
                 className="gap-2 hover:bg-background
                 flex

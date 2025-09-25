@@ -60,7 +60,7 @@ const Banneruploadform = ({ dirType, id }: props) => {
     try {
       const { data: imgdataURL, error: imguploaderror } = await HandleUploadImg(
         file,
-        "banner"
+        "bannerurl"
       );
 
       if (imguploaderror) {

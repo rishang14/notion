@@ -28,3 +28,14 @@ export const HandleUploadImg = async (imgFile: any, bucketname: string) => {
     return { data: null, error: `Error: ${error}` };
   }
 };
+
+
+export const handleImgDelete=async(bucketname:string, url:string)=>{
+  try { 
+      const deletefile= await supabase.storage.from(bucketname).remove([url]); 
+
+      return {data:deletefile,error:null}
+  } catch (error) { 
+     return {data:null,error:`error : ${error}`}
+  }
+}
