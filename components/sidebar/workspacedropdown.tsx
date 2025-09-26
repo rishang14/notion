@@ -1,5 +1,5 @@
 "use client";
-import { useAppSotre } from "@/lib/state.provider";
+import { useAppSotre } from "@/lib/store/state.provider";
 import { Workspace } from "@prisma/client";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import SelectedWorkspace from "./selectedworkspace";

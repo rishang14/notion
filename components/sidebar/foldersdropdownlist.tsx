@@ -5,7 +5,7 @@ import {
   appFoldersType,
   appWorkspacesType,
   useAppSotre,
-} from "@/lib/state.provider";
+} from "@/lib/store/state.provider";
 import { toast } from "sonner";
 import { Accordion } from "../ui/accordion";
 import TooltipComponent from "../global/tooltipprovider";

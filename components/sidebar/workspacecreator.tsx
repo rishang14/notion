@@ -17,7 +17,7 @@ import { Prisma, User } from "@prisma/client";
 import { useSession } from "next-auth/react";
 import { createWorkSpace, addCollaborator } from "@/lib/queries/db.queries";
 import { toast } from "sonner";
-import { useAppSotre } from "@/lib/state.provider";
+import { useAppSotre } from "@/lib/store/state.provider";
 import Collaboratorssearch from "../global/collaboratorssearch";
 import { useRouter } from "next/navigation";
 

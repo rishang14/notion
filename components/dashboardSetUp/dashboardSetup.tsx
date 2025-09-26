@@ -23,7 +23,7 @@ import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 import { createWorkSpace } from "@/lib/queries/db.queries";
 import { useRouter } from "next/navigation";
-import { useAppSotre } from "@/lib/state.provider";
+import { useAppSotre } from "@/lib/store/state.provider";
 interface prop {
   subscription: Subscription | null;
 }

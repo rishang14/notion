@@ -6,7 +6,7 @@ import {
 } from "../ui/accordion";
 import TooltipComponent from "../global/tooltipprovider";
 import EmojiPicker from "../global/emojiPicker";
-import { useAppSotre } from "@/lib/state.provider";
+import { useAppSotre } from "@/lib/store/state.provider";
 import { PlusIcon, Trash2 } from "lucide-react";
 import clsx from "clsx";
 import { usePathname, useRouter } from "next/navigation";

@@ -46,7 +46,7 @@ import {
   UserIcon,
 } from "lucide-react";
 import { Subscription, User, Workspace } from "@prisma/client";
-import { useAppSotre } from "@/lib/state.provider";
+import { useAppSotre } from "@/lib/store/state.provider";
 import { getUserSubscriptionStatus } from "@/lib/queries/db.queries";
 import { toast } from "sonner";
 

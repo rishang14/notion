@@ -2,7 +2,7 @@
 import { Subscription } from "@prisma/client";
 import React, { useEffect, useState } from "react";
 import CypressDiamondIcon from "@/public/icons/diamond.svg";
-import { useAppSotre } from "@/lib/state.provider";
+import { useAppSotre } from "@/lib/store/state.provider";
 import { Progress } from "../ui/progress";
 import { MAX_FOLDERS_FREE_PLAN } from "@/lib/constants";
 import Image from "next/image";

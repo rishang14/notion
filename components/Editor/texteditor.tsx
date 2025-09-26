@@ -9,7 +9,7 @@ import {
   updateFolder as updatefolder,
   updateWorkSpace as updatewrkspace,
 } from "@/lib/queries/db.queries";
-import { useAppSotre } from "@/lib/state.provider";
+import { useAppSotre } from "@/lib/store/state.provider";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Tooltip, TooltipProvider, TooltipTrigger } from "../ui/tooltip";

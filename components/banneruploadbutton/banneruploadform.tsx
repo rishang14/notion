@@ -11,7 +11,7 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import Loader from "../global/Loader";
 import { ImgFormats } from "@/lib/constants";
-import { useAppSotre } from "@/lib/state.provider";
+import { useAppSotre } from "@/lib/store/state.provider";
 import { HandleUploadImg } from "@/lib/uploadImg";
 import { toast } from "sonner";
 import { Rethink_Sans } from "next/font/google";
