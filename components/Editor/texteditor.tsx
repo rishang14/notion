@@ -418,29 +418,30 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
         if (content && length !== 1 && fileId) {
           console.log(JSON.stringify(delta), "dleta");
           sendMessage("send-changes", { delta, fileId });
+          const contentString = JSON.stringify(content);
           if (dirType == "workspace") {
             if (!fileId) return;
             updateWorkspace(fileId, {
-              data: JSON.stringify(JSON.stringify(content)),
+              data: contentString,
             });
-            await updatewrkspace({ data: JSON.stringify(content) }, fileId);
+            await updatewrkspace({ data: contentString }, fileId);
           }
           if (dirType === "folder") {
             if (!workSpaceId) return;
 
-            await updatefolder({ data: JSON.stringify(content) }, fileId);
+            await updatefolder({ data: contentString }, fileId);
 
             updateFolder(workSpaceId, fileId, {
-              data: JSON.stringify(content),
+              data: contentString,
             });
           }
           if (dirType === "file") {
             if (!folderId || !workSpaceId) return;
 
-            await updateFiles({ data: JSON.stringify(content) }, fileId);
+            await updateFiles({ data: contentString }, fileId);
 
             updateFile(workSpaceId, folderId, fileId, {
-              data: JSON.stringify(content),
+              data: contentString,
             });
           }
           console.log(fileId, "before the area of async handler ");
@@ -463,13 +464,14 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
 
   useEffect(() => {
     if (!fileId || quill === null || socket === null) return;
-    const socketHandler = (delta: any, id: any) => {
+    const socketHandler = ({ delta, fileId: recivedId }: any) => {
       console.log(
         delta,
         "contents for the changes happening in the receive change section"
       );
-      if (id === fileId) {
-        quill?.updateContents(delta);
+      if (recivedId === fileId) { 
+        console.log("helo")
+        quill?.updateContents(delta, "api");
       }
     };
     addListener("receive-changes", socketHandler);

@@ -17,7 +17,7 @@ io.on("connection", (socket) => {
   console.log(delta, "delta");
   console.log(fileId, "fileId");
 
-  socket.to(fileId).emit("receive-changes", delta, fileId);
+  socket.to(fileId).emit("receive-changes", { delta, fileId });
 })
   socket.on("cursor-move", (range, cursorid, fileid) => {
     socket.to(fileid).emit("receive-cursor-move", range, fileid, cursorid);
