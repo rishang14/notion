@@ -8,7 +8,10 @@ const httpserver = createServer();
 const io = new Server(httpserver, { cors: { origin: "*" } });
 
 io.on("connection", (socket) => {
-  socket.on("createRoom", (fileid) => socket.join(fileid));
+  socket.on("createRoom", (fileid) => {
+    socket.join(fileid);
+    console.log("selected fileid ", fileid);
+  });
   socket.on("send-changes", (delta, fileid) => {
     console.log("CHANGE");
     socket.to(fileid).emit("receive-changes", delta, fileid);
@@ -18,4 +21,20 @@ io.on("connection", (socket) => {
   });
 });
 
-httpserver.listen(port, () => console.log(`Socket.IO server running on ${port}`));
+httpserver.listen(port, () =>
+  console.log(`Socket.IO server running on ${port}`)
+);
+
+// Handle server errors
+httpserver.on("error", (error) => {
+  console.error("🔴 HTTP Server error:", error);
+});
+
+// Graceful shutdown
+process.on("SIGINT", () => {
+  console.log("\n🛑 Shutting down server...");
+  httpserver.close(() => {
+    console.log("✅ Server closed");
+    process.exit(0);
+  });
+});

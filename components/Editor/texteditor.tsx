@@ -1,10 +1,13 @@
 "use client";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   deleteFile,
   deleteFolder,
+  getFileDetails,
+  getFoldereDetails,
+  getworkspaceDetails,
   updateFiles,
   updateFolder as updatefolder,
   updateWorkSpace as updatewrkspace,
@@ -21,8 +24,10 @@ import BannerUpload from "../banneruploadbutton/bannerupload";
 import type QuillType from "quill";
 import "quill/dist/quill.snow.css";
 import { Folder, File, Workspace, User } from "@prisma/client";
-import { ReceiptEuro, XCircleIcon } from "lucide-react";
+import { XCircleIcon } from "lucide-react";
 import { handleImgDelete } from "@/lib/uploadImg";
+import UseSocket from "@/lib/store/socket.provider";
+import { error } from "console";
 
 type props = {
   dirType: "workspace" | "folder" | "file";
@@ -51,6 +56,14 @@ const toolbarOptions = [
 ];
 const Texteditor = ({ dirType, fileId, data }: props) => {
   const [quill, setQuill] = useState<QuillType | null>();
+  const {
+    isConnected,
+    connectSocket,
+    disconnectSocket,
+    addListener,
+    sendMessage,
+    socket,
+  } = UseSocket();
   const [collaborator, setcollaborator] = useState<Partial<User[]> | []>([]);
   const [deletingBanner, setDeletingBanner] = useState<boolean>(false);
   const [saving, setsaving] = useState<boolean>(false);
@@ -65,6 +78,7 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
     updateWorkspace,
   } = useAppSotre();
   const pathname = usePathname();
+  const router = useRouter();
 
   const wrapperref = useCallback((wrapper: HTMLDivElement | null) => {
     if (typeof window === undefined || wrapper === null) return;
@@ -307,8 +321,101 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
     }
   };
 
+  //check for socket connection
+  useEffect(() => {
+    if (!fileId || quill === null) return;
+    connectSocket("http://localhost:8000");
+    return () => {
+      disconnectSocket();
+    };
+  }, [fileId, quill]);
+
+  //get the updated data as per the text edtior getting  updated
+
+  useEffect(() => {
+    if (!fileId || quill === null) return;
+    let selectedDir;
+    const fetchDetails = async () => {
+      if (dirType === "workspace") {
+        const { data: workspaceDetails, error: workspaceWError } =
+          await getworkspaceDetails(fileId);
+        if (workspaceWError) {
+          return router.replace("/dashboard");
+        }
+
+        if (!data || quill === null) {
+          return;
+        }
+        selectedDir = data;
+
+        if (!selectedDir.data) return;
+        quill?.setContents(JSON.parse(selectedDir.data ?? " "));
+        updateWorkspace(fileId, { data: selectedDir.data });
+        return;
+      }
+      if (dirType === "folder") {
+        if (!workSpaceId || !fileId) return;
+
+        const { data: folderdata, error: folderError } =
+          await getFoldereDetails(fileId);
+
+        if (folderError || quill === null) {
+          return router.replace(`/dashboard/${workSpaceId}`);
+        }
+
+        selectedDir = folderdata;
+
+        if (!selectedDir?.data || quill === null) return;
+        quill?.setContents(JSON.parse(selectedDir?.data ?? " "));
+        updateFolder(workSpaceId, fileId, { data: selectedDir.data });
+        return;
+      }
+      if (dirType === "file") {
+        if (!folderId || !workSpaceId || quill === null) return;
+        const { data: fileData, error: fileError } = await getFileDetails(
+          fileId
+        );
+        if (fileError || quill === null) {
+          return router.replace(`/dashboard/${workSpaceId}/${folderId}`);
+        }
+
+        selectedDir = fileData;
+        if (!selectedDir?.data || quill === null) return;
+        quill?.setContents(JSON.parse(selectedDir?.data ?? " "));
+        updateFile(workSpaceId, folderId, fileId, { data: selectedDir.data });
+      }
+    };
+    fetchDetails();
+  }, [fileId, workSpaceId, folderId, dirType]);
+
+  // for adding user to the room
+  useEffect(() => {
+    if (!fileId || !quill || !socket ) return;
+    addListener("connect", () => {
+      sendMessage("createRoom", fileId);
+    });
+  }, [fileId, quill, socket]);
+
+  // useEffect(() => {
+  //   if (!fileId) return;
+
+  //   addListener("connect", () => {
+  //     sendMessage("createRoom", fileId);
+  //     console.log("Joined room:", fileId);
+  //   });
+
+  //   addListener("receive-changes", (delta, id) => {
+  //     console.log("Got changes from", id, delta);
+  //   });
+
+  //   addListener("receive-cursor-move", (range, fid, cursorid) => {
+  //     console.log("Cursor move:", range, fid, cursorid);
+  //   });
+  // }, [fileId]);
+
   return (
     <>
+      <div>{isConnected ? "connected" : " connecting"}</div>
       <div className="relative">
         {details.inTrash && (
           <article
