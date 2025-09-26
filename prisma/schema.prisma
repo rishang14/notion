@@ -19,7 +19,8 @@ generator zod {
   output           = "./zod"
   useMultipleFiles = true
   relationModel    = true
-  generateClient   = true
+  generateClient   = true 
+  noInputTypes = true
 }
 
 

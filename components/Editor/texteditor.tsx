@@ -23,7 +23,6 @@ import "quill/dist/quill.snow.css";
 import { Folder, File, Workspace, User } from "@prisma/client";
 import { ReceiptEuro, XCircleIcon } from "lucide-react";
 import { handleImgDelete } from "@/lib/uploadImg";
-import { de } from "zod/v4/locales";
 
 type props = {
   dirType: "workspace" | "folder" | "file";
