@@ -58,7 +58,6 @@ export const updateWorkSpace = async (
     if (!updatedWorkspace) {
       return { data: null, error: "Error" };
     }
-    revalidatePath(`/dashboard/${workspaceid}`);
     return { data: updatedWorkspace, error: null };
   } catch (error) {
     console.log("error while updating the workspace", error);
@@ -341,13 +340,13 @@ export const createFile = async (values: Partial<File>) => {
   }
 };
 
-export const deleteFolder = async(folderid: string) => {
+export const deleteFolder = async (folderid: string) => {
   return prisma.folder.delete({
     where: { id: folderid },
   });
 };
 
-export const deleteFile = async(fileid: string) => {
+export const deleteFile = async (fileid: string) => {
   return prisma.file.delete({
     where: { id: fileid },
   });

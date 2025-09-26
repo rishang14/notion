@@ -1,5 +1,11 @@
 "use client";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -24,10 +30,14 @@ import BannerUpload from "../banneruploadbutton/bannerupload";
 import type QuillType from "quill";
 import "quill/dist/quill.snow.css";
 import { Folder, File, Workspace, User } from "@prisma/client";
-import { XCircleIcon } from "lucide-react";
+import { ClipboardSignature, XCircleIcon } from "lucide-react";
 import { handleImgDelete } from "@/lib/uploadImg";
 import UseSocket from "@/lib/store/socket.provider";
 import { error } from "console";
+import { connected, removeListener } from "process";
+import { Session } from "inspector";
+import { useSession } from "next-auth/react";
+import { Delta } from "quill";
 
 type props = {
   dirType: "workspace" | "folder" | "file";
@@ -65,8 +75,10 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
     socket,
   } = UseSocket();
   const [collaborator, setcollaborator] = useState<Partial<User[]> | []>([]);
+  const socketRef = useRef<ReturnType<typeof setTimeout>>(null);
   const [deletingBanner, setDeletingBanner] = useState<boolean>(false);
   const [saving, setsaving] = useState<boolean>(false);
+  const session = useSession();
   const {
     workSpaceId,
     workspaces,
@@ -255,11 +267,6 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
     }
   };
 
-  console.log(
-    details.bannerUrl?.split(`/object/public/${"bannerurl"}/`)[1],
-    "url"
-  );
-
   const deleteBanner = async () => {
     if (!details.bannerUrl) return;
     try {
@@ -343,15 +350,16 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
           return router.replace("/dashboard");
         }
 
-        if (!data || quill === null) {
+        if (!workspaceDetails || quill === null) {
           return;
         }
-        selectedDir = data;
-
+        selectedDir = workspaceDetails;
+        console.log(selectedDir, "dir details on workspace details ");
         if (!selectedDir.data) return;
-        quill?.setContents(JSON.parse(selectedDir.data ?? " "));
+        console.log("current data of the text file ", selectedDir);
+        quill?.setContents(JSON.parse(selectedDir.data) ?? "", "api");
+        console.log(quill?.getContents(), "current content");
         updateWorkspace(fileId, { data: selectedDir.data });
-        return;
       }
       if (dirType === "folder") {
         if (!workSpaceId || !fileId) return;
@@ -364,9 +372,8 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
         }
 
         selectedDir = folderdata;
-
         if (!selectedDir?.data || quill === null) return;
-        quill?.setContents(JSON.parse(selectedDir?.data ?? " "));
+        quill?.setContents(JSON.parse(selectedDir?.data ?? " "), "api");
         updateFolder(workSpaceId, fileId, { data: selectedDir.data });
         return;
       }
@@ -381,37 +388,95 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
 
         selectedDir = fileData;
         if (!selectedDir?.data || quill === null) return;
-        quill?.setContents(JSON.parse(selectedDir?.data ?? " "));
+        quill?.setContents(JSON.parse(selectedDir?.data ?? " "), "api");
         updateFile(workSpaceId, folderId, fileId, { data: selectedDir.data });
       }
     };
     fetchDetails();
-  }, [fileId, workSpaceId, folderId, dirType]);
+  }, [fileId, workSpaceId, folderId, quill, socket]);
 
   // for adding user to the room
   useEffect(() => {
-    if (!fileId || !quill || !socket ) return;
+    if (!fileId || !quill || !socket) return;
     addListener("connect", () => {
-      sendMessage("createRoom", fileId);
+      sendMessage("createRoom", { fileId });
     });
   }, [fileId, quill, socket]);
 
-  // useEffect(() => {
-  //   if (!fileId) return;
+  //send all the changes to the user and save in db
+  useEffect(() => {
+    if (!fileId || !quill || !socket || !session?.data?.user) return;
 
-  //   addListener("connect", () => {
-  //     sendMessage("createRoom", fileId);
-  //     console.log("Joined room:", fileId);
-  //   });
+    const quillHandler = (delta: any, oldDelta: any, source: any) => {
+      if (source != "user") return;
+      setsaving(true);
 
-  //   addListener("receive-changes", (delta, id) => {
-  //     console.log("Got changes from", id, delta);
-  //   });
+      const content = quill.getContents();
+      const length = quill.getLength();
+      if (socketRef.current) clearTimeout(socketRef.current);
+      socketRef.current = setTimeout(async () => {
+        if (content && length !== 1 && fileId) {
+          console.log(JSON.stringify(delta), "dleta");
+          sendMessage("send-changes", { delta, fileId });
+          if (dirType == "workspace") {
+            if (!fileId) return;
+            updateWorkspace(fileId, {
+              data: JSON.stringify(JSON.stringify(content)),
+            });
+            await updatewrkspace({ data: JSON.stringify(content) }, fileId);
+          }
+          if (dirType === "folder") {
+            if (!workSpaceId) return;
 
-  //   addListener("receive-cursor-move", (range, fid, cursorid) => {
-  //     console.log("Cursor move:", range, fid, cursorid);
-  //   });
-  // }, [fileId]);
+            await updatefolder({ data: JSON.stringify(content) }, fileId);
+
+            updateFolder(workSpaceId, fileId, {
+              data: JSON.stringify(content),
+            });
+          }
+          if (dirType === "file") {
+            if (!folderId || !workSpaceId) return;
+
+            await updateFiles({ data: JSON.stringify(content) }, fileId);
+
+            updateFile(workSpaceId, folderId, fileId, {
+              data: JSON.stringify(content),
+            });
+          }
+          console.log(fileId, "before the area of async handler ");
+        }
+        console.log(delta, "new value");
+        console.log(oldDelta, "old value");
+
+        setsaving(false);
+      }, 850);
+    };
+    quill.on("text-change", quillHandler);
+    return () => {
+      console.log("unmounted");
+      quill.off("text-change", quillHandler);
+      if (socketRef.current) clearTimeout(socketRef.current);
+    };
+  }, [fileId, quill, socket, session?.data?.user, folderId, details]);
+
+  // received  new changes
+
+  useEffect(() => {
+    if (!fileId || quill === null || socket === null) return;
+    const socketHandler = (delta: any, id: any) => {
+      console.log(
+        delta,
+        "contents for the changes happening in the receive change section"
+      );
+      if (id === fileId) {
+        quill?.updateContents(delta);
+      }
+    };
+    addListener("receive-changes", socketHandler);
+    return () => {
+      removeListener("receive-changes", socketHandler);
+    };
+  }, [fileId, socket, quill]);
 
   return (
     <>

@@ -14,7 +14,7 @@ type SocketState = {
   removeListener: (event: string, handler?: (...args: any[]) => void) => void;
 
   // emit
-  sendMessage: (event: string, payload: any) => void;
+  sendMessage: (event: string, ...payload:any) => void;
 };
 
 const UseSocket = create<SocketState>((set, get) => ({
@@ -85,15 +85,14 @@ const UseSocket = create<SocketState>((set, get) => ({
       }
     }
   },
-
-  sendMessage: (event, payload) => {
-    const { socket, isConnected } = get();
-    if (socket && isConnected) {
-      socket.emit(event, payload);
-    } else {
-      console.warn(`Socket not connected. Cannot send "${event}".`);
-    }
-  },
+sendMessage: (event: string, ...payload: any) => {
+  const { socket, isConnected } = get();
+  if (socket && isConnected) {
+    socket.emit(event, ...payload); 
+  } else {
+    console.warn(`Socket not connected. Cannot send "${event}".`);
+  }
+}
 }));
 
 export default UseSocket;

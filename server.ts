@@ -8,14 +8,17 @@ const httpserver = createServer();
 const io = new Server(httpserver, { cors: { origin: "*" } });
 
 io.on("connection", (socket) => {
-  socket.on("createRoom", (fileid) => {
-    socket.join(fileid);
-    console.log("selected fileid ", fileid);
-  });
-  socket.on("send-changes", (delta, fileid) => {
-    console.log("CHANGE");
-    socket.to(fileid).emit("receive-changes", delta, fileid);
-  });
+ socket.on("createRoom", ({ fileId }) => {
+  socket.join(fileId);
+  console.log("selected fileId", fileId);
+});
+ socket.on("send-changes", ({ delta, fileId }) => { 
+  console.log("CHANGE");
+  console.log(delta, "delta");
+  console.log(fileId, "fileId");
+
+  socket.to(fileId).emit("receive-changes", delta, fileId);
+})
   socket.on("cursor-move", (range, cursorid, fileid) => {
     socket.to(fileid).emit("receive-cursor-move", range, fileid, cursorid);
   });

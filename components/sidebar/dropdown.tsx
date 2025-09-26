@@ -58,8 +58,6 @@ const Dropdown = ({
     }
   }, [pathname]);
 
-  console.log(listType, "type");
-  console.log(workspaces, "workspaces");
 
   // get the title of folder
   const folderTitle: string | undefined = useMemo(() => {
@@ -163,7 +161,7 @@ const Dropdown = ({
     if (!isEditing) return;
     setIsEditing(false);
     const fid = id.split("folder"); 
-    console.log(fid,"fid ")
+
     if (fid?.length === 1 && listType === "folder") { 
       if (!folderTitle) return;
       const { data, error: folderError } = await updatefolder(
@@ -176,12 +174,10 @@ const Dropdown = ({
       }
       toast.success("folder title updated", { duration: 3000 });
     }
-   console.log("i am inside the blur function ")
     if (fid?.length === 2 && fid[1] && listType=== "file") {
       if (!fileTitle) {
         return;
       } 
-      console.log("i am inside the file updation hey hey ")
       const { data, error: fileerror } = await updateFiles(
         { title: fileTitle },
         fid[1]
@@ -206,7 +202,6 @@ const Dropdown = ({
       }
     }
   }; 
-  console.log(workspaces,"spaces")
   // change the file tilte
   const fileTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!workSpaceId) return;
@@ -217,7 +212,6 @@ const Dropdown = ({
       }
     }
   }; 
-  console.log(fileTitle,"current file ttile")
 
   // create a new file
   const handleAddnewFile = async () => {
