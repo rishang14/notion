@@ -25,19 +25,15 @@ import { Tooltip, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import EmojiPicker from "../global/emojiPicker";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import BannerImg from "@/public/BannerImage.png";
 import BannerUpload from "../banneruploadbutton/bannerupload";
 import type QuillType from "quill";
 import "quill/dist/quill.snow.css";
 import { Folder, File, Workspace, User } from "@prisma/client";
-import { ClipboardSignature, XCircleIcon } from "lucide-react";
+import { XCircleIcon } from "lucide-react";
 import { handleImgDelete } from "@/lib/uploadImg";
 import UseSocket from "@/lib/store/socket.provider";
-import { error } from "console";
-import { connected, removeListener } from "process";
-import { Session } from "inspector";
 import { useSession } from "next-auth/react";
-import { Delta } from "quill";
+import { json } from "stream/consumers";
 
 type props = {
   dirType: "workspace" | "folder" | "file";
@@ -72,12 +68,14 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
     disconnectSocket,
     addListener,
     sendMessage,
+    removeListener,
     socket,
   } = UseSocket();
   const [collaborator, setcollaborator] = useState<Partial<User[]> | []>([]);
   const socketRef = useRef<ReturnType<typeof setTimeout>>(null);
   const [deletingBanner, setDeletingBanner] = useState<boolean>(false);
   const [saving, setsaving] = useState<boolean>(false);
+  const [renderKey, setRenderKey] = useState<number>(1);
   const session = useSession();
   const {
     workSpaceId,
@@ -227,7 +225,6 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
   const iconOnChange = async (icon: string) => {
     if (!icon) return;
     if (dirType === "workspace") {
-      console.log("inside workspace");
       if (!fileId) return;
       const { data, error } = await updatewrkspace({ iconId: icon }, fileId);
 
@@ -243,7 +240,7 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
 
     if (dirType === "folder") {
       if (!workSpaceId || !fileId) return;
-      console.log("i got inside the folder ");
+
       const { data, error } = await updatefolder({ iconId: icon }, fileId);
 
       if (error) {
@@ -256,7 +253,7 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
 
     if (dirType === "file") {
       if (!fileId || !folderId || !workSpaceId) return;
-      console.log("hey i am inside the file one ");
+
       const { data, error } = await updateFiles({ iconId: icon }, fileId);
 
       if (error) {
@@ -282,7 +279,6 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
       }
 
       if (dirType === "workspace") {
-        console.log("inside workspace");
         if (!fileId) return;
         const { data, error } = await updatewrkspace({ bannerUrl: "" }, fileId);
 
@@ -310,7 +306,7 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
 
       if (dirType === "file") {
         if (!fileId || !folderId || !workSpaceId) return;
-        console.log("hey i am inside the file one ");
+
         const { data, error } = await updateFiles({ bannerUrl: "" }, fileId);
 
         if (error) {
@@ -354,11 +350,16 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
           return;
         }
         selectedDir = workspaceDetails;
-        console.log(selectedDir, "dir details on workspace details ");
+
         if (!selectedDir.data) return;
-        console.log("current data of the text file ", selectedDir);
-        quill?.setContents(JSON.parse(selectedDir.data) ?? "", "api");
-        console.log(quill?.getContents(), "current content");
+        console.log(
+          selectedDir.data,
+          "data which i am fetching in fetching details section without parsing"
+        );
+        console.log(JSON.parse(selectedDir.data), "in fetching after parse");
+
+        quill?.setContents(JSON.parse(selectedDir.data), "api");
+
         updateWorkspace(fileId, { data: selectedDir.data });
       }
       if (dirType === "folder") {
@@ -412,11 +413,12 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
       setsaving(true);
 
       const content = quill.getContents();
+      console.log(content, " in quill handler content ");
+      console.log(delta, "delta in quill handler");
       const length = quill.getLength();
       if (socketRef.current) clearTimeout(socketRef.current);
       socketRef.current = setTimeout(async () => {
         if (content && length !== 1 && fileId) {
-          console.log(JSON.stringify(delta), "dleta");
           sendMessage("send-changes", { delta, fileId });
           const contentString = JSON.stringify(content);
           if (dirType == "workspace") {
@@ -444,17 +446,13 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
               data: contentString,
             });
           }
-          console.log(fileId, "before the area of async handler ");
         }
-        console.log(delta, "new value");
-        console.log(oldDelta, "old value");
 
         setsaving(false);
       }, 850);
     };
     quill.on("text-change", quillHandler);
     return () => {
-      console.log("unmounted");
       quill.off("text-change", quillHandler);
       if (socketRef.current) clearTimeout(socketRef.current);
     };
@@ -465,14 +463,22 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
   useEffect(() => {
     if (!fileId || quill === null || socket === null) return;
     const socketHandler = ({ delta, fileId: recivedId }: any) => {
-      console.log(
-        delta,
-        "contents for the changes happening in the receive change section"
-      );
-      if (recivedId === fileId) { 
-        console.log("helo")
-        quill?.updateContents(delta, "api");
-      }
+      console.log("BEFORE UPDATE:");
+      console.log("- Current content i am receiving :", quill?.getContents());
+      console.log("- Current text i am receivng :", quill?.getText());
+      console.log("- Delta to apply:     ", delta);
+      if (recivedId != fileId) return;
+      quill?.updateContents(delta, "api");
+      // setTimeout(() => {
+      //    const selection=quill?.getSelection();
+      //    console.log(selection,"selction")
+      //    quill?.setSelection(null);
+      //   if(selection)quill?.setSelection(selection)
+      // },0);
+      setRenderKey((prev) => prev + 1);
+      console.log("AFTER UPDATE:");
+      console.log("- New content: ", quill?.getContents());
+      console.log("- New text:", quill?.getText());
     };
     addListener("receive-changes", socketHandler);
     return () => {
@@ -705,7 +711,12 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
         </div>
       </div>
       <div className="flex w-full items-center flex-col justify-center mt-10">
-        <div id="container" className="max-w-[800px]" ref={wrapperref}></div>
+        <div
+          id="container"
+          className="max-w-[800px]"
+          ref={wrapperref}
+          key={renderKey}
+        ></div>
       </div>
     </>
   );
