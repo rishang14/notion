@@ -21,7 +21,7 @@ import {
 import { useAppSotre } from "@/lib/store/state.provider";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
-import { Tooltip, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import EmojiPicker from "../global/emojiPicker";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
@@ -33,7 +33,7 @@ import { XCircleIcon } from "lucide-react";
 import { handleImgDelete } from "@/lib/uploadImg";
 import UseSocket from "@/lib/store/socket.provider";
 import { useSession } from "next-auth/react";
-import { json } from "stream/consumers";
+import { date } from "zod";
 
 type props = {
   dirType: "workspace" | "folder" | "file";
@@ -73,6 +73,7 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
   } = UseSocket();
   const [collaborator, setcollaborator] = useState<Partial<User[]> | []>([]);
   const socketRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const functionref = useRef<(data: any) => void>(null);
   const [deletingBanner, setDeletingBanner] = useState<boolean>(false);
   const [saving, setsaving] = useState<boolean>(false);
   const [renderKey, setRenderKey] = useState<number>(1);
@@ -326,12 +327,12 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
 
   //check for socket connection
   useEffect(() => {
-    if (!fileId || quill === null) return;
-    connectSocket("http://localhost:8000");
+    if (!fileId || quill === null || !session?.data?.user) return;
+    connectSocket("http://localhost:8000",fileId,session?.data?.user);
     return () => {
       disconnectSocket();
     };
-  }, [fileId, quill]);
+  }, [fileId, quill,session?.data?.user]);
 
   //get the updated data as per the text edtior getting  updated
 
@@ -352,11 +353,6 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
         selectedDir = workspaceDetails;
 
         if (!selectedDir.data) return;
-        console.log(
-          selectedDir.data,
-          "data which i am fetching in fetching details section without parsing"
-        );
-        console.log(JSON.parse(selectedDir.data), "in fetching after parse");
 
         quill?.setContents(JSON.parse(selectedDir.data), "api");
 
@@ -398,11 +394,11 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
 
   // for adding user to the room
   useEffect(() => {
-    if (!fileId || !quill || !socket) return;
+    if (!fileId || !quill || !socket || !session?.data?.user) return;
     addListener("connect", () => {
-      sendMessage("createRoom", { fileId });
+      sendMessage("createRoom", { fileId, joinedUser: session.data?.user });
     });
-  }, [fileId, quill, socket]);
+  }, [fileId, quill, socket, session?.data?.user]);
 
   //send all the changes to the user and save in db
   useEffect(() => {
@@ -413,8 +409,6 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
       setsaving(true);
 
       const content = quill.getContents();
-      console.log(content, " in quill handler content ");
-      console.log(delta, "delta in quill handler");
       const length = quill.getLength();
       if (socketRef.current) clearTimeout(socketRef.current);
       socketRef.current = setTimeout(async () => {
@@ -463,22 +457,11 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
   useEffect(() => {
     if (!fileId || quill === null || socket === null) return;
     const socketHandler = ({ delta, fileId: recivedId }: any) => {
-      console.log("BEFORE UPDATE:");
-      console.log("- Current content i am receiving :", quill?.getContents());
-      console.log("- Current text i am receivng :", quill?.getText());
-      console.log("- Delta to apply:     ", delta);
-      if (recivedId != fileId) return;
+      if (recivedId != fileId) return; 
+      console.log("received the changesss ...................")
       quill?.updateContents(delta, "api");
-      // setTimeout(() => {
-      //    const selection=quill?.getSelection();
-      //    console.log(selection,"selction")
-      //    quill?.setSelection(null);
-      //   if(selection)quill?.setSelection(selection)
-      // },0);
       setRenderKey((prev) => prev + 1);
-      console.log("AFTER UPDATE:");
-      console.log("- New content: ", quill?.getContents());
-      console.log("- New text:", quill?.getText());
+
     };
     addListener("receive-changes", socketHandler);
     return () => {
@@ -486,6 +469,26 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
     };
   }, [fileId, socket, quill]);
 
+  // get the collaborator
+
+  useEffect(() => {
+    if (!fileId || socket === null || quill === null) return;
+    functionref.current = (data) => {
+      console.log("available collaborators .......", data)
+    };
+
+    const listener = (data: any) => {
+      functionref?.current?.(data);
+      setcollaborator(data);
+    };
+
+    addListener("user-Joined", listener);
+
+    return () => {
+      removeListener("user-Joined", listener);
+    };
+  }, [fileId, quill, socket]);
+//  console.log(collaborator,"availables ")
   return (
     <>
       <div>{isConnected ? "connected" : " connecting"}</div>
@@ -576,10 +579,11 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
                     w-8 
                     rounded-full"
                         >
-                          <AvatarImage src={c?.image ? c.image : " "} />
+                          <AvatarImage src={ c?.image  ?? "" }  alt="img"/>
                           <AvatarFallback>{c?.name?.charAt(0)}</AvatarFallback>
                         </Avatar>
-                      </TooltipTrigger>
+                      </TooltipTrigger> 
+                      <TooltipContent>{c?.name}</TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
                 ))}
