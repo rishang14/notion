@@ -43,7 +43,8 @@ io.on("connection", (socket) => {
     console.log(delta,"detla")
     socket.to(fileId).emit("receive-changes", { delta, fileId });
   });
-  socket.on("cursor-move", (range, cursorid, fileid) => {
+  socket.on("cursor-move", (range, cursorid, fileid) => { 
+    console.log("fired for cursor")
     socket.to(fileid).emit("receive-cursor-move", range, fileid, cursorid);
   });
   socket.on("disconnect", () => {

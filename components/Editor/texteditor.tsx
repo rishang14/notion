@@ -21,7 +21,12 @@ import {
 import { useAppSotre } from "@/lib/store/state.provider";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../ui/tooltip";
 import EmojiPicker from "../global/emojiPicker";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
@@ -33,7 +38,6 @@ import { XCircleIcon } from "lucide-react";
 import { handleImgDelete } from "@/lib/uploadImg";
 import UseSocket from "@/lib/store/socket.provider";
 import { useSession } from "next-auth/react";
-import { date } from "zod";
 
 type props = {
   dirType: "workspace" | "folder" | "file";
@@ -77,6 +81,7 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
   const [deletingBanner, setDeletingBanner] = useState<boolean>(false);
   const [saving, setsaving] = useState<boolean>(false);
   const [renderKey, setRenderKey] = useState<number>(1);
+  const [localCursor, setLocalCursor] = useState<any>([]);
   const session = useSession();
   const {
     workSpaceId,
@@ -99,13 +104,19 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
       wrapper.append(editor);
 
       const Quill = (await import("quill")).default;
-
+      const QuillCursor = (await import("quill-cursors")).default;
+      Quill.register("modules/cursors", QuillCursor);
       const q = new Quill(editor, {
         theme: "snow",
         modules: {
           toolbar: toolbarOptions,
+          cursors: {
+            transformOnTextChange: true,
+          },
         },
       });
+      const cursorsModule = q.getModule("cursors");
+      console.log("Cursors module loaded:", cursorsModule);
       setQuill(q);
     })();
   }, []);
@@ -328,11 +339,11 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
   //check for socket connection
   useEffect(() => {
     if (!fileId || quill === null || !session?.data?.user) return;
-    connectSocket("http://localhost:8000",fileId,session?.data?.user);
+    connectSocket("http://localhost:8000", fileId, session?.data?.user);
     return () => {
       disconnectSocket();
     };
-  }, [fileId, quill,session?.data?.user]);
+  }, [fileId, quill, session?.data?.user]);
 
   //get the updated data as per the text edtior getting  updated
 
@@ -402,7 +413,23 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
 
   //send all the changes to the user and save in db
   useEffect(() => {
-    if (!fileId || !quill || !socket || !session?.data?.user) return;
+    if (
+      !fileId ||
+      !quill ||
+      !socket ||
+      !session?.data?.user ||
+      !localCursor.length
+    )
+      return;
+
+    const cursorChangeHnalder = () => {
+      return (range: any, oldRange: any, source: any) => {
+        if (source === "user" && session?.data.user.id && range) {
+          console.log(range, fileId, " in the sending res of cursor ");
+          sendMessage("cursor-move", range, fileId, session?.data.user.id);
+        }
+      };
+    };
 
     const quillHandler = (delta: any, oldDelta: any, source: any) => {
       if (source != "user") return;
@@ -446,22 +473,30 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
       }, 850);
     };
     quill.on("text-change", quillHandler);
+    quill.on("selection-change", cursorChangeHnalder);
     return () => {
       quill.off("text-change", quillHandler);
+      quill.off("selection-change", cursorChangeHnalder);
       if (socketRef.current) clearTimeout(socketRef.current);
     };
-  }, [fileId, quill, socket, session?.data?.user, folderId, details]);
+  }, [
+    fileId,
+    quill,
+    socket,
+    session?.data?.user,
+    folderId,
+    details,
+    localCursor,
+  ]);
 
-  // received  new changes
-
+  // received   changes for the texts ,cursors and the users in the room present
   useEffect(() => {
     if (!fileId || quill === null || socket === null) return;
     const socketHandler = ({ delta, fileId: recivedId }: any) => {
-      if (recivedId != fileId) return; 
-      console.log("received the changesss ...................")
+      if (recivedId != fileId) return;
+      console.log("received the changesss ...................");
       quill?.updateContents(delta, "api");
       setRenderKey((prev) => prev + 1);
-
     };
     addListener("receive-changes", socketHandler);
     return () => {
@@ -474,12 +509,29 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
   useEffect(() => {
     if (!fileId || socket === null || quill === null) return;
     functionref.current = (data) => {
-      console.log("available collaborators .......", data)
+      console.log("available collaborators .......", data);
     };
 
     const listener = (data: any) => {
       functionref?.current?.(data);
       setcollaborator(data);
+      let allcollaborator = data;
+      if (!quill) return;
+      if (session?.data?.user) {
+        const cursors: any = quill.getModule("cursors");
+        allcollaborator.forEach((user: any) => {
+          if (
+            user.id !== session?.data?.user.id &&
+            !cursors.cursors()[user.id]
+          ) {
+            cursors.createCursor(
+              user.id,
+              user.email.split("@")[0],
+              `#${Math.random().toString(16).slice(2, 8)}`
+            );
+          }
+        });
+      }
     };
 
     addListener("user-Joined", listener);
@@ -488,7 +540,28 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
       removeListener("user-Joined", listener);
     };
   }, [fileId, quill, socket]);
-//  console.log(collaborator,"availables ")
+
+  // get the move ment of the cursor
+  useEffect(() => {
+    if (!fileId || !quill || !socket) return;
+
+    const cursorHandler = (range: any, roomid: string, cursorId: string) => {
+      console.log("hey i got fired", range, roomid, cursorId);
+      if (roomid === fileId) {
+        const cursorsModule: any = quill.getModule("cursors");
+
+        if (cursorsModule) {
+          cursorsModule.moveCursor(cursorId, range);
+        }
+      }
+    };
+    addListener("receive-cursor-move", cursorHandler);
+
+    return () => {
+      removeListener("receive-cursor-move", cursorHandler);
+    };
+  }, [fileId, quill, socket]);
+  console.log(localCursor, "cursor to move");
   return (
     <>
       <div>{isConnected ? "connected" : " connecting"}</div>
@@ -579,10 +652,10 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
                     w-8 
                     rounded-full"
                         >
-                          <AvatarImage src={ c?.image  ?? "" }  alt="img"/>
+                          <AvatarImage src={c?.image ?? ""} alt="img" />
                           <AvatarFallback>{c?.name?.charAt(0)}</AvatarFallback>
                         </Avatar>
-                      </TooltipTrigger> 
+                      </TooltipTrigger>
                       <TooltipContent>{c?.name}</TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
