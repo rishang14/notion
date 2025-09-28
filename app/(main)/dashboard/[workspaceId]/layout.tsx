@@ -1,5 +1,4 @@
-// import MobileSidebar from '@/components/sidebar/mobile-sidebar';
-// import Sidebar from '@/components/sidebar/sidebar';
+import MobileSidebar from "@/components/sidebar/mobilesidebar";
 import Sidebar from "@/components/sidebar/sidebar";
 import React from "react";
 
@@ -19,12 +18,11 @@ const Layout = async ({ children, params }: LayoutProps) => {
   "
     >
       <Sidebar workspaceid={workspaceId}/>
-      {/* <MobileSidebar> */}
-      {/* <Sidebar
-        //   params={params}
-          className="w-screen inline-block sm:hidden"
-        /> */}
-      {/* </MobileSidebar> */}
+      <MobileSidebar> 
+       <Sidebar
+           workspaceid={workspaceId}
+        /> 
+      </MobileSidebar>
       <div
         className="dark:border-neutral-12/70
         border-l-[1px]
