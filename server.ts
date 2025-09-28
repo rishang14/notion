@@ -75,7 +75,6 @@ httpserver.on("error", (error) => {
   console.error("🔴 HTTP Server error:", error);
 });
 
-// Graceful shutdown
 process.on("SIGINT", () => {
   console.log("\n🛑 Shutting down server...");
   httpserver.close(() => {
