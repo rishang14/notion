@@ -52,7 +52,7 @@ const Collaboratorssearch = ({
   };
   return (
     <Sheet>
-      <SheetTrigger className="w-full">{children}</SheetTrigger>
+      <SheetTrigger className="w-full" asChild>{children}</SheetTrigger>
       <SheetContent className="w-[400px] sm:w-[540px]">
         <SheetHeader>
           <SheetTitle>Search Collaborator</SheetTitle>

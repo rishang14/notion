@@ -564,7 +564,6 @@ const Texteditor = ({ dirType, fileId, data }: props) => {
   console.log(localCursor, "cursor to move");
   return (
     <>
-      <div>{isConnected ? "connected" : " connecting"}</div>
       <div className="relative">
         {details.inTrash && (
           <article
